@@ -21,21 +21,13 @@ test:
 	pytest -q
 
 fmt:
-	rufflehog --version >/dev/null 2>&1 || true
 	black . && isort .
-
-lint:
-	flake8 . || true
-
-
-dev-setup:
-	python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt -r requirements-dev.txt && pre-commit install
 
 lint:
 	ruff check .
 
-fmt:
-	black . && isort .
+dev-setup:
+	python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt -r requirements-dev.txt && pre-commit install
 
 typecheck:
 	mypy .
