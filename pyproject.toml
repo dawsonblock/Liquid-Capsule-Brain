@@ -36,3 +36,6 @@ omit = ["*/__init__.py"]
 show_missing = true
 skip_covered = true
 precision = 2
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
