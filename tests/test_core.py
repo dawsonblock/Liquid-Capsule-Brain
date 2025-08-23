@@ -1,6 +1,9 @@
-from capsule_brain.core.capsule_engine import CapsuleEngine
 import asyncio
+
 import pytest
+
+from capsule_brain.core.capsule_engine import CapsuleEngine
+
 
 @pytest.mark.asyncio
 async def test_engine_background_tasks():
@@ -11,6 +14,7 @@ async def test_engine_background_tasks():
     s = engine.get_state_summary()
     assert "self_awareness_metrics" in s
     await engine.shutdown()
+
 
 def test_add_memory_and_edge():
     engine = CapsuleEngine()

@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
+
 from capsule_brain.api.server import app
+
 
 def test_health_and_ready():
     with TestClient(app) as client:
@@ -8,6 +10,7 @@ def test_health_and_ready():
         r = client.get("/ready")
         assert r.status_code == 200 and r.json()["ready"] is True
 
+
 def test_state_and_graph():
     with TestClient(app) as client:
         r = client.get("/state/summary")
@@ -15,10 +18,13 @@ def test_state_and_graph():
         js = r.json()
         assert "self_awareness_metrics" in js and "graph" in js
 
-        r = client.post("/graph/edge", params={"source": "A", "target": "B", "relation": "related_to"})
+        r = client.post(
+            "/graph/edge", params={"source": "A", "target": "B", "relation": "related_to"}
+        )
         assert r.status_code == 200
         g = r.json()["graph"]
         assert g["nodes"] >= 2 and g["edges"] >= 1
+
 
 def test_metrics():
     with TestClient(app) as client:
