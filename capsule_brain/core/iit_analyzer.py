@@ -1,11 +1,17 @@
-import asyncio, logging, random, time
-from typing import Dict, Any
+import asyncio
+import logging
+import random
+import time
+from typing import Any
+
 import networkx as nx
 
 log = logging.getLogger(__name__)
 
+
 class IITAnalyzer:
     """Lightweight network-based Φ surrogate using clustering × density × size."""
+
     def __init__(self, engine):
         self.engine = engine
         self.current_phi: float = 0.0
@@ -27,8 +33,12 @@ class IITAnalyzer:
     def get_initial_graph(self):
         return self.graph
 
-    def get_latest_metrics(self) -> Dict[str, Any]:
-        return {"phi": float(self.current_phi), "glyphs": list(self.current_glyphs), "last": self.last_analysis}
+    def get_latest_metrics(self) -> dict[str, Any]:
+        return {
+            "phi": float(self.current_phi),
+            "glyphs": list(self.current_glyphs),
+            "last": self.last_analysis,
+        }
 
     def _compute_phi(self) -> None:
         n = self.graph.number_of_nodes()
@@ -59,7 +69,8 @@ class IITAnalyzer:
                 if random.random() < 0.2 and self.graph.number_of_nodes() < 300:
                     a = f"n{random.randint(0, 9999)}"
                     b = f"n{random.randint(0, 9999)}"
-                    self.graph.add_node(a); self.graph.add_node(b)
+                    self.graph.add_node(a)
+                    self.graph.add_node(b)
                     self.graph.add_edge(a, b)
                 self._compute_phi()
             except Exception as e:

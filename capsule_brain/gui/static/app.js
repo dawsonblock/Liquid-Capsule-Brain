@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-  let ws = new WebSocket(`ws://${window.location.host}/ws`);
+  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token') || localStorage.getItem('cb_admin_token') || '';
+  const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+  let ws = new WebSocket(`${scheme}://${window.location.host}/ws${qs}`);
   ws.onopen = () => updateStatus('Connected', 'online');
   ws.onclose = () => updateStatus('Disconnected', 'offline');
   ws.onerror = () => updateStatus('Error', 'offline');
@@ -48,6 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   async function loadSystem(){ try { const resp = await fetch('/state/summary'); const data = await resp.json(); updateHud(data.self_awareness_metrics); } catch(e) {} }
   function updateStatus(text, klass){ document.getElementById('statusText').textContent = text; const dot = document.querySelector('.status-dot'); dot.className = `status-dot ${klass}`; }
-  function appendMessage(content, sender){ const c = document.getElementById('chatMessages'); const msg = document.createElement('div'); msg.className=`message ${sender}`; msg.innerHTML = window.marked.parse(content || "..."); c.appendChild(msg); c.scrollTop = c.scrollHeight; }
+  function appendMessage(content, sender){ const c = document.getElementById('chatMessages'); const msg = document.createElement('div'); msg.className=`message ${sender}`; const raw = window.marked.parse(content || "..."); const safe = window.DOMPurify ? window.DOMPurify.sanitize(raw) : raw; msg.innerHTML = safe; c.appendChild(msg); c.scrollTop = c.scrollHeight; }
   function updateHud(m){ if (!m) return; const phi=document.getElementById('phiValue'); const g=document.getElementById('glyphsValue'); if (phi&&m.phi!==undefined) phi.textContent = (+m.phi).toFixed(4); if (g&&m.glyphs) g.textContent = (m.glyphs||[]).join(' ')||'∅'; }
 });
