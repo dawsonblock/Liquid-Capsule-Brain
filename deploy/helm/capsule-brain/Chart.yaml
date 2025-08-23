@@ -1,0 +1,6 @@
+apiVersion: v2
+name: capsule-brain
+description: Capsule Brain Supreme AGI runtime with API, metrics, and dashboards
+type: application
+version: 0.1.0
+appVersion: "1.0.1"

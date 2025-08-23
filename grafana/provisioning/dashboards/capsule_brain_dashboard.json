@@ -1,0 +1,71 @@
+{
+  "id": null,
+  "title": "Capsule Brain Supreme - Core Metrics",
+  "tags": [
+    "capsule_brain",
+    "agi"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "panels": [
+    {
+      "type": "graph",
+      "title": "API Request Latency (p95)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+        }
+      ],
+      "datasource": "Prometheus",
+      "id": 1
+    },
+    {
+      "type": "graph",
+      "title": "Error Ratio (5xx)",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))"
+        }
+      ],
+      "datasource": "Prometheus",
+      "id": 2
+    },
+    {
+      "type": "graph",
+      "title": "Token Usage Per Minute",
+      "targets": [
+        {
+          "expr": "sum(rate(token_usage_total[1m]))"
+        }
+      ],
+      "datasource": "Prometheus",
+      "id": 3
+    },
+    {
+      "type": "graph",
+      "title": "Planner Queue Depth",
+      "targets": [
+        {
+          "expr": "planner_queue_depth"
+        }
+      ],
+      "datasource": "Prometheus",
+      "id": 4
+    },
+    {
+      "type": "graph",
+      "title": "Overseer Approvals vs Rejections",
+      "targets": [
+        {
+          "expr": "sum(rate(overseer_approvals_total[5m]))"
+        },
+        {
+          "expr": "sum(rate(overseer_rejections_total[5m]))"
+        }
+      ],
+      "datasource": "Prometheus",
+      "id": 5
+    }
+  ]
+}

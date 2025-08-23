@@ -1,0 +1,11 @@
+1. Get the service URL:
+  If you enabled ingress (default):
+    https://{{ (index .Values.ingress.hosts 0).host }}
+  Otherwise, port-forward:
+    kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "capsule-brain.fullname" . }} 8000:80
+
+2. Health:
+    curl -k https://{{ (index .Values.ingress.hosts 0).host }}/healthz
+
+3. Metrics (Prometheus):
+    Ensure ServiceMonitor CRD/operator installed (values.metrics.serviceMonitor.create=true).

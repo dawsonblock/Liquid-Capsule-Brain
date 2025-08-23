@@ -1,0 +1,16 @@
+services:
+  reverse-proxy:
+    build:
+      context: ./deploy/nginx
+    environment:
+      - CB_DOMAIN=${CB_DOMAIN}
+      - UPSTREAM_HOST=api
+      - UPSTREAM_PORT=8000
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - api
+    networks: [cbnet]

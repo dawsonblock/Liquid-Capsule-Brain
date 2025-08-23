@@ -1,0 +1,17 @@
+{{- if .Values.metrics.serviceMonitor.create }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "capsule-brain.fullname" . }}
+  labels:
+    {{- include "capsule-brain.labels" . | nindent 4 }}
+    {{- toYaml .Values.metrics.serviceMonitor.labels | nindent 4 }}
+spec:
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.scrapeInterval }}
+  selector:
+    matchLabels:
+      {{- include "capsule-brain.selectorLabels" . | nindent 6 }}
+{{- end }}

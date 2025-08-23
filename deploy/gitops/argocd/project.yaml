@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: capsule-brain
+  namespace: argocd
+spec:
+  description: Capsule Brain environments
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: 'capsule-brain*'
+      server: 'https://kubernetes.default.svc'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'

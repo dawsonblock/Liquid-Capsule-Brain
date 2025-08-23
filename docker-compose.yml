@@ -1,0 +1,51 @@
+services:
+  api:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    command: ["python", "launch_capsule_brain.py"]
+    depends_on:
+      - prometheus
+    networks: [cbnet]
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
+    ports:
+      - "9090:9090"
+    networks: [cbnet]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=${GRAFANA_SMTP_HOST}
+      - GF_SMTP_USER=${GRAFANA_SMTP_USER}
+      - GF_SMTP_PASSWORD=${GRAFANA_SMTP_PASSWORD}
+      - GF_SMTP_FROM_ADDRESS=${GRAFANA_SMTP_FROM}
+      - GRAFANA_SLACK_CRITICAL_WEBHOOK=${GRAFANA_SLACK_CRITICAL_WEBHOOK}
+      - GRAFANA_SLACK_CRITICAL_CHANNEL=${GRAFANA_SLACK_CRITICAL_CHANNEL}
+      - GRAFANA_SLACK_WARNING_WEBHOOK=${GRAFANA_SLACK_WARNING_WEBHOOK}
+      - GRAFANA_SLACK_WARNING_CHANNEL=${GRAFANA_SLACK_WARNING_CHANNEL}
+      - GRAFANA_WEBHOOK_URL=${GRAFANA_WEBHOOK_URL}
+      - GRAFANA_ALERT_EMAILS=${GRAFANA_ALERT_EMAILS}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/your/webhook/url}
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    networks: [cbnet]
+
+networks:
+  cbnet:
+    driver: bridge

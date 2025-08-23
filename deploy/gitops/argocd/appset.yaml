@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: capsule-brain-appset
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - name: staging
+            namespace: capsule-brain-staging
+            valuesFile: deploy/helm/capsule-brain/values-staging.yaml
+            host: cb-staging.example.com
+          - name: prod
+            namespace: capsule-brain
+            valuesFile: deploy/helm/capsule-brain/values-prod.yaml
+            host: cb.example.com
+  template:
+    metadata:
+      name: cb-{{name}}
+      labels:
+        env: '{{name}}'
+    spec:
+      project: capsule-brain
+      source:
+        repoURL: https://github.com/your-org/capsule-brain.git
+        targetRevision: HEAD
+        path: deploy/helm/capsule-brain
+        helm:
+          valueFiles:
+            - '{{valuesFile}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

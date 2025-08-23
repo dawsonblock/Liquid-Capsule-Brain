@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "capsule-brain.fullname" . }}
+  labels:
+    {{- include "capsule-brain.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.autoscaling.enabled | ternary 1 .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "capsule-brain.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "capsule-brain.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          env:
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: "{{ $v }}"
+            {{- end }}
+          envFrom:
+            {{- if .Values.envFrom.configMapName }}
+            - configMapRef:
+                name: {{ .Values.envFrom.configMapName }}
+            {{- end }}
+            {{- if .Values.envFrom.secretName }}
+            - secretRef:
+                name: {{ .Values.envFrom.secretName }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
