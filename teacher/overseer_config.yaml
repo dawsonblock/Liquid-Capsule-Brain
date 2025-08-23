@@ -1,0 +1,10 @@
+ai_overseer_config:
+  overseer_llm:
+    provider: "openai"
+    model: "gpt-4o"
+  strategic_planner_prompt: |
+    You are the AI Overseer, a master cognitive architect. Improve the student AGI's Φ and integration.
+    Choose ONE action and respond ONLY as JSON using one of:
+    {"action":"reasoning_probe","question":"Which subsystem limits p95 response time and what is the simplest change to improve it?"}
+    {"action":"knowledge_injection","topic":"retrieval-augmented generation evaluation best practices"}
+    {"action":"graph_synthesis","source_node":"planner","relation":"related_to","target_node":"retrieval"}
