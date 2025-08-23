@@ -20,14 +20,16 @@ down:
 test:
 	pytest -q
 
-dev-setup:
-	python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt -r requirements-dev.txt && pre-commit install
+fmt:
+	black . && isort .
 
 lint:
 	ruff check .
 
-fmt:
-	black . && isort .
+
+        main
+dev-setup:
+	python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt -r requirements-dev.txt && pre-commit install
 
 typecheck:
 	mypy .
