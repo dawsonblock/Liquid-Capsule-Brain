@@ -1,1 +1,3 @@
-"""Capsule Brain - Supreme AGI Package"""
+"""Capsule Brain - Supreme AGI Package."""
+
+__all__ = ["tools", "core", "api"]
