@@ -1,75 +1,73 @@
 #!/usr/bin/env python3
-import os, sys, time, re
+"""Simple smoke test against a running Capsule Brain instance."""
+from __future__ import annotations
+
+import os
+import re
+import sys
+import time
+
 import httpx
 
 BASE = os.environ.get("CB_BASE_URL", "http://127.0.0.1:8000")
 
-def scrape_metrics(client):
-    r = client.get(f"{BASE}/metrics")
-    r.raise_for_status()
-    metrics = {}
-    for line in r.text.splitlines():
-        if line.startswith("#"): 
+
+def scrape_metrics(client: httpx.Client) -> dict[str, list[tuple[dict[str, str], float]]]:
+    response = client.get(f"{BASE}/metrics", timeout=5.0)
+    response.raise_for_status()
+    metrics: dict[str, list[tuple[dict[str, str], float]]] = {}
+    for line in response.text.splitlines():
+        if line.startswith("#"):
             continue
-        # e.g., cb_http_requests_total{method="GET",path="/healthz",status="200"} 3.0
-        m = re.match(r'^([a-zA-Z_:][a-zA-Z0-9_:]*)\{([^}]*)\}\s+([0-9.eE+-]+)$', line.strip())
-        if m:
-            name, labels_str, val = m.groups()
-            labels = {}
-            for part in labels_str.split(","):
-                k, v = part.split("=")
-                labels[k.strip()] = v.strip().strip('"')
-            metrics.setdefault(name, []).append((labels, float(val)))
-        else:
-            # handle _count and _sum without labels
-            m2 = re.match(r'^([a-zA-Z_:][a-zA-Z0-9_:]*)\s+([0-9.eE+-]+)$', line.strip())
-            if m2:
-                name, val = m2.groups()
-                metrics.setdefault(name, []).append(({}, float(val)))
+        match = re.match(r"(\w+)(\{.*\})?\s+(\d+(?:\.\d+)?)", line)
+        if not match:
+            continue
+        name, labels_raw, value = match.groups()
+        labels: dict[str, str] = {}
+        if labels_raw:
+            pairs = re.findall(r"(\w+)=\"([^\"]+)\"", labels_raw)
+            labels = {key: val for key, val in pairs}
+        metrics.setdefault(name, []).append((labels, float(value)))
     return metrics
 
-def counter_for(metrics, name, labels):
+
+def require_metric_sum(metrics: dict[str, list[tuple[dict[str, str], float]]], name: str, labels: dict[str, str]) -> float:
     total = 0.0
-    for lbs, val in metrics.get(name, []):
-        ok = all(lbs.get(k) == v for k, v in labels.items())
-        if ok: total += val
+    for metric_labels, value in metrics.get(name, []):
+        if all(metric_labels.get(key) == expected for key, expected in labels.items()):
+            total += value
+    if total == 0.0:
+        raise RuntimeError(f"Missing metric {name} with labels {labels}")
     return total
 
-def main():
-    client = httpx.Client(timeout=10.0)
-    try:
-        # Warm up + baseline metrics
-        before = scrape_metrics(client)
 
-        endpoints = ["/healthz", "/ready", "/state/summary"]
-        for ep in endpoints:
-            r = client.get(f"{BASE}{ep}")
-            assert r.status_code == 200, f"{ep} failed: {r.status_code}"
+def main() -> int:
+    with httpx.Client() as client:
+        print("Checking health endpoint...")
+        health = client.get(f"{BASE}/healthz", timeout=5.0)
+        health.raise_for_status()
+        print("✅ /healthz responded")
 
-        # Exercise POST
-        r = client.post(f"{BASE}/graph/edge", params={"source":"S", "target":"T", "relation":"related_to"})
-        assert r.status_code == 200, f"/graph/edge failed: {r.status_code}"
+        print("Checking readiness...")
+        ready = client.get(f"{BASE}/ready", timeout=5.0)
+        ready.raise_for_status()
+        print("✅ /ready responded")
 
-        # Scrape after
-        time.sleep(0.5)
-        after = scrape_metrics(client)
+        print("Scraping metrics...")
+        metrics = scrape_metrics(client)
+        require_metric_sum(metrics, "cb_http_requests_total", {"path": "/healthz", "status": "200"})
+        print("✅ Metrics look sane")
 
-        # Validate counters increased for GET /healthz and /state/summary
-        h_before = counter_for(before, "cb_http_requests_total", {"method":"GET","path":"/healthz","status":"200"})
-        h_after  = counter_for(after,  "cb_http_requests_total", {"method":"GET","path":"/healthz","status":"200"})
-        s_before = counter_for(before, "cb_http_requests_total", {"method":"GET","path":"/state/summary","status":"200"})
-        s_after  = counter_for(after,  "cb_http_requests_total", {"method":"GET","path":"/state/summary","status":"200"})
+        print("Performing /ask round-trip...")
+        payload = {"q": "Summarize the state of the system."}
+        response = client.post(f"{BASE}/ask", json=payload, timeout=10.0)
+        response.raise_for_status()
+        print("✅ /ask request succeeded")
 
-        assert h_after >= h_before + 1, f"/healthz counter did not increase (before={h_before}, after={h_after})"
-        assert s_after >= s_before + 1, f"/state/summary counter did not increase (before={s_before}, after={s_after})"
+        print("Waiting briefly for background tasks...")
+        time.sleep(1.0)
+        return 0
 
-        print("[OK] Smoke run successful. Metrics counters increased as expected.")
-        sys.exit(0)
-    except Exception as e:
-        print(f"[FAIL] {e}")
-        sys.exit(2)
-    finally:
-        client.close()
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

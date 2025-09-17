@@ -1,1 +1,5 @@
-def test_ok(): assert True
+"""Basic smoke tests for CI pipelines."""
+
+
+def test_ok() -> None:
+    assert True

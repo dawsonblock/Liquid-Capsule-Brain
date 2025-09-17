@@ -1,1 +1,1 @@
-"""Capsule Brain - Supreme AGI Package"""
+"""Capsule Brain - Supreme AGI Package."""
