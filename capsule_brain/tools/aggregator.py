@@ -13,18 +13,17 @@ log = logging.getLogger(__name__)
 
 Numeric = int | float | complex
 SAFE_LITERAL_TYPES = (int, float, complex)
+BinaryOp = Callable[[Numeric, Numeric], Numeric]
+UnaryOp = Callable[[Numeric], Numeric]
 
-BINARY_OPS: dict[type[ast.operator], Callable[[Numeric, Numeric], Numeric]] = {
+BINARY_OPS: dict[type[ast.operator], BinaryOp] = {
     ast.Add: op.add,
     ast.Sub: op.sub,
     ast.Mult: op.mul,
     ast.Div: op.truediv,
     ast.Pow: op.pow,
 }
-
-UNARY_OPS: dict[type[ast.unaryop], Callable[[Numeric], Numeric]] = {
-    ast.USub: lambda value: -value,
-}
+UNARY_OPS: dict[type[ast.unaryop], UnaryOp] = {ast.USub: lambda value: -value}
 
 
 def _safe_eval(expr: str) -> Numeric:
@@ -32,9 +31,11 @@ def _safe_eval(expr: str) -> Numeric:
         if isinstance(node, ast.Constant):
             if isinstance(node.value, SAFE_LITERAL_TYPES):
                 return node.value
-            raise ValueError("Unsafe literal")
+            raise ValueError("Unsafe expression")
         if isinstance(node, ast.Num):  # pragma: no cover - compatibility with older ASTs
-            return node.n
+            if isinstance(node.n, SAFE_LITERAL_TYPES):
+                return node.n
+            raise ValueError("Unsafe expression")
         if isinstance(node, ast.BinOp):
             binary_op = BINARY_OPS.get(type(node.op))
             if binary_op is None:
@@ -47,8 +48,7 @@ def _safe_eval(expr: str) -> Numeric:
             return unary_op(eval_(node.operand))
         raise ValueError("Unsafe expression")
 
-    parsed = ast.parse(expr, mode="eval")
-    return eval_(parsed.body)
+    return eval_(ast.parse(expr, mode="eval").body)
 
 
 class ToolAggregator:
