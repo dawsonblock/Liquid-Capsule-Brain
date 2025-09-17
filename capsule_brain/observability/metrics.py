@@ -1,9 +1,21 @@
+"""Prometheus metrics middleware and router."""
 
-from time import time
+from __future__ import annotations
+
 import re
-from typing import Callable
-from prometheus_client import CollectorRegistry, CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+import time
+from collections.abc import Callable
+from typing import Any
+
 from fastapi import APIRouter, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    generate_latest,
+)
+from starlette.types import Message, Receive, Scope, Send
 
 registry = CollectorRegistry()
 REQUEST_COUNT = Counter(
@@ -28,34 +40,39 @@ TOKENS_USED = Counter(
 
 router = APIRouter()
 
+
 @router.get("/metrics")
 async def metrics() -> Response:
     data = generate_latest(registry)
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
+
 class MetricsMiddleware:
-    def __init__(self, app: Callable):
+    """Basic ASGI middleware that records request metrics."""
+
+    def __init__(self, app: Callable[[Scope, Receive, Send], Any]):
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope.get("type") != "http":
-            return await self.app(scope, receive, send)
+            await self.app(scope, receive, send)
+            return
 
         method = scope.get("method", "GET")
         path = scope.get("path", "/")
 
-        start = time()
-        status_code_container = {"code": "500"}
+        start = time.time()
+        status_code = {"code": "500"}
 
-        async def send_wrapper(message):
+        async def send_wrapper(message: Message) -> None:
             if message.get("type") == "http.response.start":
-                status_code_container["code"] = str(message.get("status", 500))
+                status_code["code"] = str(message.get("status", 500))
             await send(message)
 
         try:
             await self.app(scope, receive, send_wrapper)
         finally:
-            elapsed = time() - start
-            norm_path = re.sub(r"/\d+", "/{id}", path)
-            REQUEST_LATENCY.labels(method, norm_path).observe(elapsed)
-            REQUEST_COUNT.labels(method, norm_path, status_code_container["code"]).inc()
+            elapsed = time.time() - start
+            normalised_path = re.sub(r"/\d+", "/{id}", path)
+            REQUEST_LATENCY.labels(method, normalised_path).observe(elapsed)
+            REQUEST_COUNT.labels(method, normalised_path, status_code["code"]).inc()
