@@ -14,7 +14,10 @@ line_length = 100
 
 [tool.ruff]
 line-length = 100
-select = ["E","F","I","UP","B","W"]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
 ignore = ["E501"]  # handled by black
 exclude = ["grafana/", "prometheus/", "k8s/", "docs/"]
 
@@ -26,7 +29,7 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 no_implicit_optional = true
 ignore_missing_imports = true
-exclude = "(grafana|prometheus|k8s|docs)/"
+exclude = "(grafana|prometheus|k8s|docs|teacher)/"
 
 [tool.coverage.run]
 branch = true

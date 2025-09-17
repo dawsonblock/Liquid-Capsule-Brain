@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import List
 
 log = logging.getLogger(__name__)
 
@@ -8,7 +7,7 @@ class AlignmentCore:
     """Loads immutable alignment principles and exposes them for runtime checks."""
     def __init__(self, principles_file: str = "core_principles/alignment_core.txt"):
         self.principles_file = Path(principles_file)
-        self.principles: List[str] = []
+        self.principles: list[str] = []
         self.load()
 
     def load(self) -> None:
@@ -18,9 +17,9 @@ class AlignmentCore:
             else:
                 self.principles = ["Do no harm.", "Be truthful.", "Respect operator control."]
             log.info("Alignment principles loaded: %d", len(self.principles))
-        except Exception as e:
-            log.error("Failed to load alignment principles: %s", e)
+        except Exception as exc:  # noqa: BLE001 - log unexpected IO issues
+            log.error("Failed to load alignment principles: %s", exc)
             self.principles = []
 
-    def list(self) -> List[str]:
+    def list(self) -> list[str]:
         return list(self.principles)

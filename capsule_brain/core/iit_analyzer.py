@@ -1,15 +1,24 @@
-import asyncio, logging, random, time
-from typing import Dict, Any
+from __future__ import annotations
+
+import asyncio
+import logging
+import random
+import time
+from typing import TYPE_CHECKING, Any
+
 import networkx as nx
 
 log = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from capsule_brain.core.capsule_engine import CapsuleEngine
+
 class IITAnalyzer:
     """Lightweight network-based Φ surrogate using clustering × density × size."""
-    def __init__(self, engine):
+    def __init__(self, engine: CapsuleEngine):
         self.engine = engine
         self.current_phi: float = 0.0
-        self.current_glyphs = []
+        self.current_glyphs: list[str] = []
         self.graph = nx.Graph()
         self.last_analysis = time.time()
         self.max_nodes_eval = 200
@@ -24,10 +33,10 @@ class IITAnalyzer:
             self.graph.add_edge(f"n{i}", f"n{i+1}")
         self.engine.knowledge_graph = self.graph
 
-    def get_initial_graph(self):
+    def get_initial_graph(self) -> nx.Graph:
         return self.graph
 
-    def get_latest_metrics(self) -> Dict[str, Any]:
+    def get_latest_metrics(self) -> dict[str, Any]:
         return {"phi": float(self.current_phi), "glyphs": list(self.current_glyphs), "last": self.last_analysis}
 
     def _compute_phi(self) -> None:
@@ -52,14 +61,15 @@ class IITAnalyzer:
             self.current_glyphs.append("▣")
         self.last_analysis = time.time()
 
-    async def run_analysis_loop(self, bus):
+    async def run_analysis_loop(self, bus: asyncio.Queue[Any]) -> None:
         while not self.engine._shutdown_event.is_set():
             try:
                 # Add small random wiring evolution
                 if random.random() < 0.2 and self.graph.number_of_nodes() < 300:
                     a = f"n{random.randint(0, 9999)}"
                     b = f"n{random.randint(0, 9999)}"
-                    self.graph.add_node(a); self.graph.add_node(b)
+                    self.graph.add_node(a)
+                    self.graph.add_node(b)
                     self.graph.add_edge(a, b)
                 self._compute_phi()
             except Exception as e:
