@@ -1,9 +1,18 @@
+from __future__ import annotations
 
-from time import time
 import re
-from typing import Callable
-from prometheus_client import CollectorRegistry, CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from time import time
+from typing import Awaitable, Callable, MutableMapping, Any
+
 from fastapi import APIRouter, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    generate_latest,
+)
+from starlette.types import Receive, Scope, Send
 
 registry = CollectorRegistry()
 REQUEST_COUNT = Counter(
@@ -28,16 +37,18 @@ TOKENS_USED = Counter(
 
 router = APIRouter()
 
+
 @router.get("/metrics")
 async def metrics() -> Response:
     data = generate_latest(registry)
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
+
 class MetricsMiddleware:
-    def __init__(self, app: Callable):
+    def __init__(self, app: Callable[[Scope, Receive, Send], Awaitable[None]]):
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope.get("type") != "http":
             return await self.app(scope, receive, send)
 
@@ -47,7 +58,7 @@ class MetricsMiddleware:
         start = time()
         status_code_container = {"code": "500"}
 
-        async def send_wrapper(message):
+        async def send_wrapper(message: MutableMapping[str, Any]) -> None:
             if message.get("type") == "http.response.start":
                 status_code_container["code"] = str(message.get("status", 500))
             await send(message)

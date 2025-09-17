@@ -1,33 +1,108 @@
-import asyncio, time, logging, ast, operator as op
-from typing import List, Dict, Any, Tuple
-from ..security.input_sanitizer import validate_tool_params
+from __future__ import annotations
+
+import ast
+import asyncio
+import logging
+import operator as op
+import time
+from typing import Any, Callable, Dict, Iterable, List, Tuple
+
 from ..retrieval.index import retrieve_topk
+from ..security.input_sanitizer import validate_tool_params
+
+
 log = logging.getLogger(__name__)
-ALLOWED_OPS={ast.Add:op.add,ast.Sub:op.sub,ast.Mult:op.mul,ast.Div:op.truediv,ast.Pow:op.pow,ast.USub:lambda x:-x}
-def _safe_eval(expr:str):
-    def eval_(node):
-        if isinstance(node, ast.Num): return node.n
-        if isinstance(node, ast.BinOp): return ALLOWED_OPS[type(node.op)](eval_(node.left),eval_(node.right))
-        if isinstance(node, ast.UnaryOp): return ALLOWED_OPS[type(node.op)](eval_(node.operand))
+
+BinaryOp = Callable[[float, float], float]
+UnaryOp = Callable[[float], float]
+
+ALLOWED_BINARY_OPS: dict[type[ast.AST], BinaryOp] = {
+    ast.Add: op.add,
+    ast.Sub: op.sub,
+    ast.Mult: op.mul,
+    ast.Div: op.truediv,
+    ast.Pow: op.pow,
+}
+
+ALLOWED_UNARY_OPS: dict[type[ast.AST], UnaryOp] = {
+    ast.USub: lambda value: -value,
+}
+
+
+def _safe_eval(expr: str) -> float:
+    """Evaluate a simple arithmetic expression safely."""
+
+    node = ast.parse(expr, mode="eval").body
+
+    def eval_(ast_node: ast.AST) -> float:
+        if isinstance(ast_node, ast.Num):  # type: ignore[attr-defined]
+            literal = ast_node.n
+            if not isinstance(literal, (int, float)):
+                raise ValueError("Unsupported literal")
+            return float(literal)
+        if isinstance(ast_node, ast.BinOp):
+            binary_op = ALLOWED_BINARY_OPS.get(type(ast_node.op))
+            if binary_op is None:
+                raise ValueError("Unsupported operator")
+            return binary_op(eval_(ast_node.left), eval_(ast_node.right))
+        if isinstance(ast_node, ast.UnaryOp):
+            unary_op = ALLOWED_UNARY_OPS.get(type(ast_node.op))
+            if unary_op is None:
+                raise ValueError("Unsupported unary operator")
+            return unary_op(eval_(ast_node.operand))
         raise ValueError("Unsafe expression")
-    return eval_(ast.parse(expr, mode='eval').body)
+
+    return eval_(node)
+
+
 class ToolAggregator:
-    def __init__(self): self.tools={}; self.results_cache={}
-    async def maybe_batch(self, tool_hints: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], float]:
-        start=time.perf_counter()
-        if not tool_hints: return {"results":[]}, 0.0
-        results=[]
-        for hint in tool_hints[:5]:
+    """Coordinate multiple tool invocations with minimal batching."""
+
+    def __init__(self) -> None:
+        self.results_cache: dict[str, Dict[str, Any]] = {}
+
+    async def maybe_batch(
+        self, tool_hints: Iterable[Dict[str, Any]]
+    ) -> Tuple[Dict[str, Any], float]:
+        start = time.perf_counter()
+        hints = list(tool_hints)
+        if not hints:
+            return {"results": []}, 0.0
+
+        results: List[Dict[str, Any]] = []
+        for hint in hints[:5]:
             try:
-                clean=validate_tool_params(hint); results.append(await self._execute_tool(clean))
-            except Exception as e:
-                log.error(f"Tool failure: {e}"); results.append({"error": str(e), "tool": hint.get("tool","unknown")})
-        return {"results": results}, (time.perf_counter()-start)*1000
+                clean = validate_tool_params(hint)
+                results.append(await self._execute_tool(clean))
+            except Exception as exc:  # pragma: no cover - defensive logging
+                log.error("Tool failure: %s", exc)
+                results.append({"error": str(exc), "tool": hint.get("tool", "unknown")})
+
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        return {"results": results}, elapsed_ms
+
     async def _execute_tool(self, hint: Dict[str, Any]) -> Dict[str, Any]:
-        name=hint.get("tool","unknown"); await asyncio.sleep(0.05)
-        if name=="local_search":
-            q=hint.get("query",""); return {"tool":"local_search","query":q,"results": (await retrieve_topk(q)).get("abstracts",[])}
-        if name=="calculator":
-            expr=hint.get("expression","0"); return {"tool":"calculator","expression":expr,"result": _safe_eval(expr)}
+        name = hint.get("tool", "unknown")
+        await asyncio.sleep(0.05)
+
+        if name == "local_search":
+            query = hint.get("query", "")
+            retrieval = await retrieve_topk(query)
+            return {
+                "tool": "local_search",
+                "query": query,
+                "results": retrieval.get("abstracts", []),
+            }
+
+        if name == "calculator":
+            expression = hint.get("expression", "0")
+            return {
+                "tool": "calculator",
+                "expression": expression,
+                "result": _safe_eval(expression),
+            }
+
         return {"tool": name, "status": "completed", "data": "Mock tool execution result"}
-    async def health_check(self) -> bool: return True
+
+    async def health_check(self) -> bool:
+        return True

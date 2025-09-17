@@ -2,8 +2,9 @@ from capsule_brain.core.capsule_engine import CapsuleEngine
 import asyncio
 import pytest
 
+
 @pytest.mark.asyncio
-async def test_engine_background_tasks():
+async def test_engine_background_tasks() -> None:
     engine = CapsuleEngine()
     await engine.start_background_tasks()
     # allow a loop tick
@@ -12,7 +13,8 @@ async def test_engine_background_tasks():
     assert "self_awareness_metrics" in s
     await engine.shutdown()
 
-def test_add_memory_and_edge():
+
+def test_add_memory_and_edge() -> None:
     engine = CapsuleEngine()
     engine.add_memory("user", "hello")
     assert engine.memory[-1]["content"] == "hello"
