@@ -44,7 +44,7 @@ class CapsuleEngine:
         return task
 
     async def start_background_tasks(self, app: FastAPI) -> None:
-        if self.bus is not None:
+        if self._background_tasks:
             raise RuntimeError("Engine background tasks are already running")
 
         self._shutdown_event.clear()
