@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 import ast
 import asyncio
 import logging
+import operator as op
 import time
+from collections.abc import Callable
 from typing import Any, TypeAlias, cast
 
 from ..retrieval.index import retrieve_topk
@@ -12,46 +12,51 @@ from ..security.input_sanitizer import validate_tool_params
 log = logging.getLogger(__name__)
 
 Number: TypeAlias = float | int
+BinaryOperator = Callable[[Number, Number], Number]
+UnaryOperator = Callable[[Number], Number]
+
+
+def _negate(value: Number) -> Number:
+    return cast(Number, -value)
+
+
+ALLOWED_BIN_OPS: dict[type[ast.AST], BinaryOperator] = {
+    ast.Add: op.add,
+    ast.Sub: op.sub,
+    ast.Mult: op.mul,
+    ast.Div: op.truediv,
+    ast.Pow: op.pow,
+}
+
+ALLOWED_UNARY_OPS: dict[type[ast.AST], UnaryOperator] = {ast.USub: _negate}
 
 
 def _safe_eval(expr: str) -> Number:
-    """Safely evaluate a mathematical expression containing numeric literals."""
-
     def eval_(node: ast.AST) -> Number:
         if isinstance(node, ast.Constant):
             value = node.value
             if isinstance(value, bool) or not isinstance(value, int | float):
                 raise ValueError("Unsafe expression")
             return cast(Number, value)
-        if isinstance(node, ast.Num):  # pragma: no cover - for Python <3.8 compatibility
+        if isinstance(node, ast.Num):  # pragma: no cover - legacy Python nodes
             value = node.n
             if isinstance(value, bool):
                 raise ValueError("Unsafe expression")
             return cast(Number, value)
         if isinstance(node, ast.BinOp):
-            left_value = eval_(node.left)
-            right_value = eval_(node.right)
-            op_node = node.op
-            if isinstance(op_node, ast.Add):
-                return cast(Number, left_value + right_value)
-            if isinstance(op_node, ast.Sub):
-                return cast(Number, left_value - right_value)
-            if isinstance(op_node, ast.Mult):
-                return cast(Number, left_value * right_value)
-            if isinstance(op_node, ast.Div):
-                return cast(Number, left_value / right_value)
-            if isinstance(op_node, ast.Pow):
-                return cast(Number, left_value**right_value)
-            raise ValueError("Unsafe expression")
+            bin_operator = ALLOWED_BIN_OPS.get(type(node.op))
+            if bin_operator is None:
+                raise ValueError("Unsafe expression")
+            return bin_operator(eval_(node.left), eval_(node.right))
         if isinstance(node, ast.UnaryOp):
-            operand = eval_(node.operand)
-            if isinstance(node.op, ast.USub):
-                return cast(Number, -operand)
-            raise ValueError("Unsafe expression")
+            unary_operator = ALLOWED_UNARY_OPS.get(type(node.op))
+            if unary_operator is None:
+                raise ValueError("Unsafe expression")
+            return unary_operator(eval_(node.operand))
         raise ValueError("Unsafe expression")
 
-    parsed = ast.parse(expr, mode="eval").body
-    return eval_(parsed)
+    parsed = ast.parse(expr, mode="eval")
+    return eval_(parsed.body)
 
 
 class ToolAggregator:
@@ -59,7 +64,9 @@ class ToolAggregator:
         self.tools: dict[str, Any] = {}
         self.results_cache: dict[str, Any] = {}
 
-    async def maybe_batch(self, tool_hints: list[dict[str, Any]]) -> tuple[dict[str, Any], float]:
+    async def maybe_batch(
+        self, tool_hints: list[dict[str, Any]]
+    ) -> tuple[dict[str, Any], float]:
         start = time.perf_counter()
         if not tool_hints:
             return {"results": []}, 0.0
@@ -67,8 +74,8 @@ class ToolAggregator:
         results: list[dict[str, Any]] = []
         for hint in tool_hints[:5]:
             try:
-                clean_hint = validate_tool_params(hint)
-                results.append(await self._execute_tool(clean_hint))
+                clean = validate_tool_params(hint)
+                results.append(await self._execute_tool(clean))
             except Exception as exc:  # pragma: no cover - defensive logging
                 log.error("Tool failure: %s", exc)
                 results.append({"error": str(exc), "tool": hint.get("tool", "unknown")})
