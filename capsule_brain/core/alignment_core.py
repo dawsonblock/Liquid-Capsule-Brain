@@ -1,26 +1,36 @@
+"""Utilities for loading and exposing alignment principles."""
+from __future__ import annotations
+
 import logging
+from collections.abc import Iterable
 from pathlib import Path
-from typing import List
 
 log = logging.getLogger(__name__)
 
+
 class AlignmentCore:
     """Loads immutable alignment principles and exposes them for runtime checks."""
-    def __init__(self, principles_file: str = "core_principles/alignment_core.txt"):
+
+    def __init__(self, principles_file: str = "core_principles/alignment_core.txt") -> None:
         self.principles_file = Path(principles_file)
-        self.principles: List[str] = []
+        self.principles: list[str] = []
         self.load()
 
     def load(self) -> None:
         try:
             if self.principles_file.exists():
-                self.principles = [ln.strip() for ln in self.principles_file.read_text(encoding="utf-8").splitlines() if ln.strip()]
+                raw_lines: Iterable[str] = self.principles_file.read_text(encoding="utf-8").splitlines()
+                self.principles = [line.strip() for line in raw_lines if line.strip()]
             else:
-                self.principles = ["Do no harm.", "Be truthful.", "Respect operator control."]
+                self.principles = [
+                    "Do no harm.",
+                    "Be truthful.",
+                    "Respect operator control.",
+                ]
             log.info("Alignment principles loaded: %d", len(self.principles))
-        except Exception as e:
-            log.error("Failed to load alignment principles: %s", e)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            log.error("Failed to load alignment principles: %s", exc)
             self.principles = []
 
-    def list(self) -> List[str]:
+    def list(self) -> list[str]:
         return list(self.principles)

@@ -1,9 +1,19 @@
+"""Prometheus metrics helpers for the Capsule Brain API."""
+from __future__ import annotations
 
-from time import time
 import re
-from typing import Callable
-from prometheus_client import CollectorRegistry, CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from time import time
+
 from fastapi import APIRouter, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    generate_latest,
+)
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
 
 registry = CollectorRegistry()
 REQUEST_COUNT = Counter(
@@ -28,34 +38,25 @@ TOKENS_USED = Counter(
 
 router = APIRouter()
 
+
 @router.get("/metrics")
 async def metrics() -> Response:
     data = generate_latest(registry)
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
-class MetricsMiddleware:
-    def __init__(self, app: Callable):
-        self.app = app
 
-    async def __call__(self, scope, receive, send):
-        if scope.get("type") != "http":
-            return await self.app(scope, receive, send)
-
-        method = scope.get("method", "GET")
-        path = scope.get("path", "/")
-
+class MetricsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> Response:
+        method = request.method
+        path = request.url.path
         start = time()
-        status_code_container = {"code": "500"}
-
-        async def send_wrapper(message):
-            if message.get("type") == "http.response.start":
-                status_code_container["code"] = str(message.get("status", 500))
-            await send(message)
-
-        try:
-            await self.app(scope, receive, send_wrapper)
-        finally:
-            elapsed = time() - start
-            norm_path = re.sub(r"/\d+", "/{id}", path)
-            REQUEST_LATENCY.labels(method, norm_path).observe(elapsed)
-            REQUEST_COUNT.labels(method, norm_path, status_code_container["code"]).inc()
+        response = await call_next(request)
+        elapsed = time() - start
+        norm_path = re.sub(r"/\d+", "/{id}", path)
+        REQUEST_LATENCY.labels(method, norm_path).observe(elapsed)
+        REQUEST_COUNT.labels(method, norm_path, str(response.status_code)).inc()
+        return response

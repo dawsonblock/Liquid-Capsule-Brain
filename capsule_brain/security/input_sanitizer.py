@@ -1,12 +1,34 @@
-import re, logging
+"""Utilities for cleaning user-supplied input before tool execution."""
+from __future__ import annotations
+
+import logging
+import re
+from typing import Any
+
 log = logging.getLogger(__name__)
-def sanitize_input(s: str) -> str:
-    if not isinstance(s,str): return ""
-    s=re.sub(r'[<>"\']','',s); s=s[:2000]; s=re.sub(r'\s+',' ',s).strip(); return s
-def validate_tool_params(params: dict) -> dict:
-    clean={}
-    for k,v in params.items():
-        if isinstance(v,str): clean[k]=sanitize_input(v)
-        elif isinstance(v,(int,float,bool)): clean[k]=v
-        elif isinstance(v,list): clean[k]=[sanitize_input(str(i)) for i in v[:10]]
+
+_SANITIZE_PATTERN = re.compile(r"[<>\"']")
+_WHITESPACE_PATTERN = re.compile(r"\s+")
+
+
+def sanitize_input(value: str) -> str:
+    if not isinstance(value, str):
+        return ""
+    cleaned = _SANITIZE_PATTERN.sub("", value)
+    cleaned = cleaned[:2000]
+    cleaned = _WHITESPACE_PATTERN.sub(" ", cleaned).strip()
+    return cleaned
+
+
+def validate_tool_params(params: dict[str, Any]) -> dict[str, Any]:
+    clean: dict[str, Any] = {}
+    for key, value in params.items():
+        if isinstance(value, str):
+            clean[key] = sanitize_input(value)
+        elif isinstance(value, int | float | bool):
+            clean[key] = value
+        elif isinstance(value, list):
+            clean[key] = [sanitize_input(str(item)) for item in value[:10]]
+        else:
+            log.debug("Dropping unsupported param %s=%r", key, value)
     return clean
