@@ -39,6 +39,9 @@ def _safe_eval(expression: str) -> float:
             value = current.value
             if isinstance(value, Real):
                 return float(value)
+            else:
+                msg = f"Unsupported constant value (not Real): {value!r} of type {type(value).__name__}"
+                raise ValueError(msg)
         if isinstance(current, ast.BinOp):
             binary_operator = ALLOWED_BINARY_OPS.get(type(current.op))
             if binary_operator is None:
