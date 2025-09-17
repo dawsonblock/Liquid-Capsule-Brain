@@ -3,22 +3,50 @@
 from __future__ import annotations
 
 import asyncio
-import logging
-from typing import Any, Dict, Optional
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Any, cast
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from capsule_brain.core.capsule_engine import CapsuleEngine
 from capsule_brain.gui.gui import AdvancedGUI
-from capsule_brain.observability.metrics import (
-    MetricsMiddleware,
-    router as metrics_router,
-)
+from capsule_brain.observability import metrics as metrics_module
 
-log = logging.getLogger(__name__)
 
-app = FastAPI(title="Capsule Brain Supreme AGI", version="1.0.1")
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Manage the CapsuleEngine and GUI lifecycle for the FastAPI app."""
+
+    engine = CapsuleEngine()
+    await engine.start_background_tasks()
+    app.state.engine = engine
+
+    gui = AdvancedGUI(engine, app)
+    app.state.gui = gui
+
+    if engine.bus is not None:
+        engine.add_background_task(
+            asyncio.create_task(
+                gui.run_broadcasters(),
+                name="capsule-brain-gui-broadcaster",
+            )
+        )
+
+    try:
+        yield
+    finally:
+        if getattr(app.state, "gui", None) is not None:
+            await gui.close()
+            app.state.gui = None
+
+        if getattr(app.state, "engine", None) is not None:
+            await engine.shutdown()
+            app.state.engine = None
+
+
+app = FastAPI(title="Capsule Brain Supreme AGI", version="1.0.1", lifespan=lifespan)
 
 # CORS
 app.add_middleware(
@@ -30,75 +58,43 @@ app.add_middleware(
 )
 
 # Metrics
-app.add_middleware(MetricsMiddleware)
-app.include_router(metrics_router)
+app.add_middleware(cast(Any, metrics_module.MetricsMiddleware))
+app.include_router(metrics_module.router)
 
-engine: Optional[CapsuleEngine] = None
-gui: Optional[AdvancedGUI] = None
-_gui_task: Optional[asyncio.Task[None]] = None
-
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    """Spin up the CapsuleEngine and attach the Advanced GUI."""
-
-    global engine, gui, _gui_task
-
-    engine = CapsuleEngine()
-    await engine.start_background_tasks()
-
-    gui = AdvancedGUI(engine, app)
-    if engine.bus is not None:
-        _gui_task = asyncio.create_task(gui.run_broadcasters())
-        engine.add_background_task(_gui_task)
-
-    log.info("Engine started.")
-
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    """Tear down the engine and release GUI state."""
-
-    global engine, gui, _gui_task
-
-    if engine is not None:
-        await engine.shutdown()
-
-    engine = None
-    gui = None
-    _gui_task = None
+def _get_engine_or_503() -> CapsuleEngine:
+    engine = getattr(app.state, "engine", None)
+    if engine is None:
+        raise HTTPException(status_code=503, detail="engine not ready")
+    return cast(CapsuleEngine, engine)
 
 
 @app.get("/healthz")
-async def healthz() -> Dict[str, Any]:
+async def healthz() -> dict[str, Any]:
     """Simple health probe endpoint."""
 
     return {"ok": True}
 
 
 @app.get("/ready")
-async def ready() -> Dict[str, Any]:
+async def ready() -> dict[str, Any]:
     """Readiness probe indicating whether the engine has been initialised."""
 
-    return {"ready": engine is not None}
+    return {"ready": getattr(app.state, "engine", None) is not None}
 
 
 @app.get("/state/summary")
-async def state_summary() -> Dict[str, Any]:
+async def state_summary() -> dict[str, Any]:
     """Return the CapsuleEngine state summary once the engine is live."""
 
-    if engine is None:
-        raise HTTPException(status_code=503, detail="engine not ready")
-
+    engine = _get_engine_or_503()
     return engine.get_state_summary()
 
 
 @app.post("/ask")
-async def ask(q: str) -> Dict[str, Any]:
+async def ask(q: str) -> dict[str, Any]:
     """Accept a user question and provide the synthesised LLM context."""
 
-    if engine is None:
-        raise HTTPException(status_code=503, detail="engine not ready")
+    engine = _get_engine_or_503()
 
     engine.add_memory("user", q)
     context, system_prompt = engine.belief_state_manager.synthesize_context_for_llm()
@@ -110,11 +106,10 @@ async def add_edge(
     source: str,
     target: str,
     relation: str = "related_to",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Add an edge to the knowledge graph once the engine is ready."""
 
-    if engine is None:
-        raise HTTPException(status_code=503, detail="engine not ready")
+    engine = _get_engine_or_503()
 
     engine.add_graph_edge(source, target, relation)
     graph = {

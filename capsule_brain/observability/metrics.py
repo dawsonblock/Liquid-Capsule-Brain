@@ -1,9 +1,21 @@
 
-from time import time
+"""Prometheus metrics instrumentation for Capsule Brain."""
+
+from __future__ import annotations
+
 import re
-from typing import Callable
-from prometheus_client import CollectorRegistry, CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from collections.abc import Awaitable, Callable
+from time import time
+from typing import Any, Protocol
+
 from fastapi import APIRouter, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    generate_latest,
+)
 
 registry = CollectorRegistry()
 REQUEST_COUNT = Counter(
@@ -33,13 +45,30 @@ async def metrics() -> Response:
     data = generate_latest(registry)
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
+
+class ASGIApp(Protocol):
+    async def __call__(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[[], Awaitable[dict[str, Any]]],
+        send: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> None:
+        ...
+
+
 class MetricsMiddleware:
-    def __init__(self, app: Callable):
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[[], Awaitable[dict[str, Any]]],
+        send: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> None:
         if scope.get("type") != "http":
-            return await self.app(scope, receive, send)
+            await self.app(scope, receive, send)
+            return
 
         method = scope.get("method", "GET")
         path = scope.get("path", "/")
@@ -47,7 +76,7 @@ class MetricsMiddleware:
         start = time()
         status_code_container = {"code": "500"}
 
-        async def send_wrapper(message):
+        async def send_wrapper(message: dict[str, Any]) -> None:
             if message.get("type") == "http.response.start":
                 status_code_container["code"] = str(message.get("status", 500))
             await send(message)
