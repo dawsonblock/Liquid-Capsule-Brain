@@ -1,75 +1,99 @@
 #!/usr/bin/env python3
-import os, sys, time, re
+"""Simple smoke test that validates key Capsule Brain HTTP endpoints."""
+
+from __future__ import annotations
+
+import os
+import re
+import sys
+import time
+
 import httpx
 
 BASE = os.environ.get("CB_BASE_URL", "http://127.0.0.1:8000")
 
-def scrape_metrics(client):
-    r = client.get(f"{BASE}/metrics")
-    r.raise_for_status()
-    metrics = {}
-    for line in r.text.splitlines():
-        if line.startswith("#"): 
+
+def scrape_metrics(client: httpx.Client) -> dict[str, list[tuple[dict[str, str], float]]]:
+    response = client.get(f"{BASE}/metrics")
+    response.raise_for_status()
+    metrics: dict[str, list[tuple[dict[str, str], float]]] = {}
+    for line in response.text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
             continue
-        # e.g., cb_http_requests_total{method="GET",path="/healthz",status="200"} 3.0
-        m = re.match(r'^([a-zA-Z_:][a-zA-Z0-9_:]*)\{([^}]*)\}\s+([0-9.eE+-]+)$', line.strip())
-        if m:
-            name, labels_str, val = m.groups()
-            labels = {}
+
+        match_with_labels = re.match(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)\{([^}]*)\}\s+([0-9.eE+-]+)$", stripped)
+        if match_with_labels:
+            name, labels_str, value = match_with_labels.groups()
+            labels: dict[str, str] = {}
             for part in labels_str.split(","):
-                k, v = part.split("=")
-                labels[k.strip()] = v.strip().strip('"')
-            metrics.setdefault(name, []).append((labels, float(val)))
-        else:
-            # handle _count and _sum without labels
-            m2 = re.match(r'^([a-zA-Z_:][a-zA-Z0-9_:]*)\s+([0-9.eE+-]+)$', line.strip())
-            if m2:
-                name, val = m2.groups()
-                metrics.setdefault(name, []).append(({}, float(val)))
+                key, raw_value = part.split("=")
+                labels[key.strip()] = raw_value.strip().strip('"')
+            metrics.setdefault(name, []).append((labels, float(value)))
+            continue
+
+        match_without_labels = re.match(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)\s+([0-9.eE+-]+)$", stripped)
+        if match_without_labels:
+            name, value = match_without_labels.groups()
+            metrics.setdefault(name, []).append(({}, float(value)))
+
     return metrics
 
-def counter_for(metrics, name, labels):
+
+def counter_for(metrics: dict[str, list[tuple[dict[str, str], float]]], name: str, labels: dict[str, str]) -> float:
     total = 0.0
-    for lbs, val in metrics.get(name, []):
-        ok = all(lbs.get(k) == v for k, v in labels.items())
-        if ok: total += val
+    for metric_labels, value in metrics.get(name, []):
+        if all(metric_labels.get(key) == expected for key, expected in labels.items()):
+            total += value
     return total
 
-def main():
+
+def main() -> None:
     client = httpx.Client(timeout=10.0)
     try:
-        # Warm up + baseline metrics
         before = scrape_metrics(client)
 
-        endpoints = ["/healthz", "/ready", "/state/summary"]
-        for ep in endpoints:
-            r = client.get(f"{BASE}{ep}")
-            assert r.status_code == 200, f"{ep} failed: {r.status_code}"
+        for endpoint in ["/healthz", "/ready", "/state/summary"]:
+            response = client.get(f"{BASE}{endpoint}")
+            response.raise_for_status()
 
-        # Exercise POST
-        r = client.post(f"{BASE}/graph/edge", params={"source":"S", "target":"T", "relation":"related_to"})
-        assert r.status_code == 200, f"/graph/edge failed: {r.status_code}"
+        post_response = client.post(
+            f"{BASE}/graph/edge",
+            params={"source": "S", "target": "T", "relation": "related_to"},
+        )
+        post_response.raise_for_status()
 
-        # Scrape after
         time.sleep(0.5)
         after = scrape_metrics(client)
 
-        # Validate counters increased for GET /healthz and /state/summary
-        h_before = counter_for(before, "cb_http_requests_total", {"method":"GET","path":"/healthz","status":"200"})
-        h_after  = counter_for(after,  "cb_http_requests_total", {"method":"GET","path":"/healthz","status":"200"})
-        s_before = counter_for(before, "cb_http_requests_total", {"method":"GET","path":"/state/summary","status":"200"})
-        s_after  = counter_for(after,  "cb_http_requests_total", {"method":"GET","path":"/state/summary","status":"200"})
+        health_labels = {"method": "GET", "path": "/healthz", "status": "200"}
+        state_labels = {"method": "GET", "path": "/state/summary", "status": "200"}
 
-        assert h_after >= h_before + 1, f"/healthz counter did not increase (before={h_before}, after={h_after})"
-        assert s_after >= s_before + 1, f"/state/summary counter did not increase (before={s_before}, after={s_after})"
+        health_before = counter_for(before, "cb_http_requests_total", health_labels)
+        health_after = counter_for(after, "cb_http_requests_total", health_labels)
+        state_before = counter_for(before, "cb_http_requests_total", state_labels)
+        state_after = counter_for(after, "cb_http_requests_total", state_labels)
+
+        if health_after < health_before + 1:
+            raise RuntimeError(
+                f"/healthz counter did not increase (before={health_before}, after={health_after})"
+            )
+
+        if state_after < state_before + 1:
+            raise RuntimeError(
+                "/state/summary counter did not increase "
+                f"(before={state_before}, after={state_after})"
+            )
 
         print("[OK] Smoke run successful. Metrics counters increased as expected.")
-        sys.exit(0)
-    except Exception as e:
-        print(f"[FAIL] {e}")
+    except Exception as exc:  # pragma: no cover - CLI feedback
+        print(f"[FAIL] {exc}")
         sys.exit(2)
+    else:
+        sys.exit(0)
     finally:
         client.close()
+
 
 if __name__ == "__main__":
     main()
