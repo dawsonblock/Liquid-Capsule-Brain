@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-import os, sys, time, re
+import os
+import re
+import sys
+import time
+
 import httpx
 
 BASE = os.environ.get("CB_BASE_URL", "http://127.0.0.1:8000")
 
-def scrape_metrics(client):
+
+def scrape_metrics(client: httpx.Client) -> dict[str, list[tuple[dict[str, str], float]]]:
     r = client.get(f"{BASE}/metrics")
     r.raise_for_status()
-    metrics = {}
+    metrics: dict[str, list[tuple[dict[str, str], float]]] = {}
     for line in r.text.splitlines():
-        if line.startswith("#"): 
+        if line.startswith("#"):
             continue
         # e.g., cb_http_requests_total{method="GET",path="/healthz",status="200"} 3.0
         m = re.match(r'^([a-zA-Z_:][a-zA-Z0-9_:]*)\{([^}]*)\}\s+([0-9.eE+-]+)$', line.strip())
@@ -28,14 +33,21 @@ def scrape_metrics(client):
                 metrics.setdefault(name, []).append(({}, float(val)))
     return metrics
 
-def counter_for(metrics, name, labels):
+
+def counter_for(
+    metrics: dict[str, list[tuple[dict[str, str], float]]],
+    name: str,
+    labels: dict[str, str],
+) -> float:
     total = 0.0
     for lbs, val in metrics.get(name, []):
         ok = all(lbs.get(k) == v for k, v in labels.items())
-        if ok: total += val
+        if ok:
+            total += val
     return total
 
-def main():
+
+def main() -> None:
     client = httpx.Client(timeout=10.0)
     try:
         # Warm up + baseline metrics
