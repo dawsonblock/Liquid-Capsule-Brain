@@ -1,9 +1,9 @@
 import logging
 from typing import Any
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, Field, ValidationError
 
 from capsule_brain.core.capsule_engine import CapsuleEngine
 from capsule_brain.observability.metrics import MetricsMiddleware
@@ -19,21 +19,15 @@ app.add_middleware(MetricsMiddleware)
 app.include_router(metrics_router)
 
 engine: CapsuleEngine | None = None
-ASK_REQUEST_BODY = Body(default=None)
 ASK_QUERY_PARAM = Query(default=None)
 
 
 class AskRequest(BaseModel):
     """Payload accepted by the /ask endpoint."""
 
-    question: str | None = Field(default=None, alias="q")
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    def extract(self) -> str | None:
-        """Return the provided question regardless of the key used."""
-
-        return self.question
+    question: str | None = Field(
+        default=None, validation_alias=AliasChoices("question", "q")
+    )
 
 @app.on_event("startup")
 async def on_startup() -> None:
@@ -63,15 +57,41 @@ async def state_summary() -> dict[str, Any]:
     return engine.get_state_summary()
 
 @app.post("/ask")
-async def ask(
-    ask_request: AskRequest | None = ASK_REQUEST_BODY,
-    q: str | None = ASK_QUERY_PARAM,
-) -> dict[str, Any]:
+async def ask(request: Request, q: str | None = ASK_QUERY_PARAM) -> dict[str, Any]:
     if not engine:
         raise HTTPException(status_code=503, detail="engine not ready")
     assert engine is not None
     current_engine = engine
-    question = ask_request.extract() if ask_request else None
+    question: str | None = None
+    if question is None:
+        try:
+            raw_payload = await request.json()
+        except ValueError:
+            raw_payload = None
+        if isinstance(raw_payload, dict):
+            try:
+                question = AskRequest.model_validate(raw_payload).question
+            except ValidationError:
+                question = None
+        elif isinstance(raw_payload, str):
+            question = raw_payload
+    if question is None:
+        try:
+            form = await request.form()
+        except Exception:  # pragma: no cover - defensive guard
+            form = None
+        if form is not None:
+            form_q = form.get("q") or form.get("question")
+            if isinstance(form_q, str):
+                question = form_q
+    if question is None:
+        content_type = request.headers.get("content-type", "")
+        if "text/plain" in content_type or not content_type:
+            body_bytes = await request.body()
+            if body_bytes:
+                candidate = body_bytes.decode("utf-8", errors="ignore").strip()
+                if candidate:
+                    question = candidate
     if question is None:
         question = q
     if question is None:

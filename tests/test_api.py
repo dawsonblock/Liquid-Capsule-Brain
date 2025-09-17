@@ -56,7 +56,17 @@ def test_ask_accepts_multiple_payloads() -> None:
 
         _post_and_check({"json": {"q": "json alias"}}, "json alias")
         _post_and_check({"json": {"question": "json question"}}, "json question")
-        _post_and_check({"params": {"q": "query question"}}, "query question")
+        _post_and_check({"data": {"q": "form question"}}, "form question")
+        _post_and_check(
+            {
+                "data": "plain text question",
+                "headers": {"content-type": "text/plain"},
+            },
+            "plain text question",
+        )
+        _post_and_check(
+            {"json": {}, "params": {"q": "query question"}}, "query question"
+        )
 
         missing = client.post("/ask")
         assert missing.status_code == 422
