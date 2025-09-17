@@ -1,7 +1,8 @@
 import asyncio, logging, os
-from typing import Dict, Any
-from fastapi import FastAPI, HTTPException
+from typing import Any, Dict, Optional
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from capsule_brain.core.capsule_engine import CapsuleEngine
 from capsule_brain.observability.metrics import router as metrics_router, MetricsMiddleware
 
@@ -15,6 +16,10 @@ app.add_middleware(MetricsMiddleware)
 app.include_router(metrics_router)
 
 engine: CapsuleEngine | None = None
+
+
+class AskRequest(BaseModel):
+    q: Optional[str] = None
 
 @app.on_event("startup")
 async def on_startup():
@@ -42,9 +47,12 @@ async def state_summary() -> Dict[str, Any]:
     return engine.get_state_summary()
 
 @app.post("/ask")
-async def ask(q: str) -> Dict[str, Any]:
+async def ask(payload: AskRequest = Body(...), q: Optional[str] = None) -> Dict[str, Any]:
     if not engine: raise HTTPException(status_code=503, detail="engine not ready")
-    engine.add_memory("user", q)
+    query = payload.q or q
+    if not query:
+        raise HTTPException(status_code=422, detail="Missing question payload")
+    engine.add_memory("user", query)
     context, system_prompt = engine.belief_state_manager.synthesize_context_for_llm()
     return {"ack": True, "context": context, "system": system_prompt}
 

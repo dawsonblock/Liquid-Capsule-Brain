@@ -20,6 +20,15 @@ def test_state_and_graph():
         g = r.json()["graph"]
         assert g["nodes"] >= 2 and g["edges"] >= 1
 
+
+def test_ask_accepts_json():
+    with TestClient(app) as client:
+        response = client.post("/ask", json={"q": "What is the plan?"})
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload.get("ack") is True
+        assert "context" in payload and "system" in payload
+
 def test_metrics():
     with TestClient(app) as client:
         # hit a couple endpoints first
