@@ -1,12 +1,29 @@
-import re, logging
+from __future__ import annotations
+
+import logging
+import re
+from typing import Any
+
 log = logging.getLogger(__name__)
-def sanitize_input(s: str) -> str:
-    if not isinstance(s,str): return ""
-    s=re.sub(r'[<>"\']','',s); s=s[:2000]; s=re.sub(r'\s+',' ',s).strip(); return s
-def validate_tool_params(params: dict) -> dict:
-    clean={}
-    for k,v in params.items():
-        if isinstance(v,str): clean[k]=sanitize_input(v)
-        elif isinstance(v,(int,float,bool)): clean[k]=v
-        elif isinstance(v,list): clean[k]=[sanitize_input(str(i)) for i in v[:10]]
+
+
+def sanitize_input(value: str) -> str:
+    if not isinstance(value, str):
+        return ""
+
+    sanitized = re.sub(r'[<>"\']', "", value)
+    sanitized = sanitized[:2000]
+    sanitized = re.sub(r"\s+", " ", sanitized).strip()
+    return sanitized
+
+
+def validate_tool_params(params: dict[str, Any]) -> dict[str, Any]:
+    clean: dict[str, Any] = {}
+    for key, raw_value in params.items():
+        if isinstance(raw_value, str):
+            clean[key] = sanitize_input(raw_value)
+        elif isinstance(raw_value, int | float | bool):
+            clean[key] = raw_value
+        elif isinstance(raw_value, list):
+            clean[key] = [sanitize_input(str(item)) for item in raw_value[:10]]
     return clean
