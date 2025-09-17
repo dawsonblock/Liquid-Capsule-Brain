@@ -1,9 +1,19 @@
+from __future__ import annotations
 
-from time import time
 import re
-from typing import Callable
-from prometheus_client import CollectorRegistry, CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from time import time
+
 from fastapi import APIRouter, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    generate_latest,
+)
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.types import ASGIApp
 
 registry = CollectorRegistry()
 REQUEST_COUNT = Counter(
@@ -28,34 +38,43 @@ TOKENS_USED = Counter(
 
 router = APIRouter()
 
+
 @router.get("/metrics")
 async def metrics() -> Response:
     data = generate_latest(registry)
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
-class MetricsMiddleware:
-    def __init__(self, app: Callable):
-        self.app = app
 
-    async def __call__(self, scope, receive, send):
-        if scope.get("type") != "http":
-            return await self.app(scope, receive, send)
+def record_tokens(model: str, tokens: int) -> None:
+    """Record the number of tokens consumed for a given model."""
 
-        method = scope.get("method", "GET")
-        path = scope.get("path", "/")
+    TOKENS_USED.labels(model).inc(tokens)
 
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        if request.scope.get("type") != "http":
+            return await call_next(request)
+
+        method = request.method
+        path = request.url.path
         start = time()
-        status_code_container = {"code": "500"}
-
-        async def send_wrapper(message):
-            if message.get("type") == "http.response.start":
-                status_code_container["code"] = str(message.get("status", 500))
-            await send(message)
+        status_code = "500"
 
         try:
-            await self.app(scope, receive, send_wrapper)
+            response = await call_next(request)
+            status_code = str(response.status_code)
+            return response
+        except Exception:
+            status_code = "500"
+            raise
         finally:
             elapsed = time() - start
             norm_path = re.sub(r"/\d+", "/{id}", path)
             REQUEST_LATENCY.labels(method, norm_path).observe(elapsed)
-            REQUEST_COUNT.labels(method, norm_path, status_code_container["code"]).inc()
+            REQUEST_COUNT.labels(method, norm_path, status_code).inc()

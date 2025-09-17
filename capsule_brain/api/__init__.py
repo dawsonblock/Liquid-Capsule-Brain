@@ -1,1 +1,1 @@
-"""API module for Capsule Brain"""
+"""API module for Capsule Brain."""

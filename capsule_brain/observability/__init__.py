@@ -1,1 +1,1 @@
-"""Observability module for monitoring and telemetry"""
+"""Observability module for monitoring and telemetry."""
