@@ -4,7 +4,7 @@ import logging
 import operator as op
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from ..retrieval.index import retrieve_topk
 from ..security.input_sanitizer import validate_tool_params
@@ -27,15 +27,16 @@ UNARY_OPS: dict[type[ast.unaryop], UnaryOp] = {ast.USub: lambda value: -value}
 
 
 def _safe_eval(expr: str) -> Numeric:
+    def ensure_numeric(value: Any) -> Numeric:
+        if isinstance(value, bool) or not isinstance(value, SAFE_LITERAL_TYPES):
+            raise ValueError("Unsafe expression")
+        return cast(Numeric, value)
+
     def eval_(node: ast.AST) -> Numeric:
         if isinstance(node, ast.Constant):
-            if isinstance(node.value, SAFE_LITERAL_TYPES):
-                return node.value
-            raise ValueError("Unsafe expression")
+            return ensure_numeric(node.value)
         if isinstance(node, ast.Num):  # pragma: no cover - compatibility with older ASTs
-            if isinstance(node.n, SAFE_LITERAL_TYPES):
-                return node.n
-            raise ValueError("Unsafe expression")
+            return ensure_numeric(node.n)
         if isinstance(node, ast.BinOp):
             binary_op = BINARY_OPS.get(type(node.op))
             if binary_op is None:

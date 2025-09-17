@@ -21,6 +21,9 @@ def test_safe_eval_valid_expressions(expression: str, expected: float) -> None:
     [
         "__import__('os')",
         "1 and 2",
+        "True",
+        "False",
+        "True + 1",
     ],
 )
 def test_safe_eval_rejects_unsafe_expressions(expression: str) -> None:
