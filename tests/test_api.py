@@ -31,3 +31,13 @@ def test_metrics():
         text = r.text
         assert "cb_http_requests_total" in text
         assert "cb_request_latency_seconds_bucket" in text
+
+
+def test_gui_routes():
+    with TestClient(app) as client:
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert "text/html" in resp.headers.get("content-type", "")
+
+        with client.websocket_connect("/ws") as websocket:
+            websocket.send_text("hello")

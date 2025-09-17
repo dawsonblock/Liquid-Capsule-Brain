@@ -1,8 +1,9 @@
-import asyncio, logging, os
+import asyncio, logging
 from typing import Dict, Any
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from capsule_brain.core.capsule_engine import CapsuleEngine
+from capsule_brain.gui.gui import AdvancedGUI
 from capsule_brain.observability.metrics import router as metrics_router, MetricsMiddleware
 
 log = logging.getLogger(__name__)
@@ -15,18 +16,28 @@ app.add_middleware(MetricsMiddleware)
 app.include_router(metrics_router)
 
 engine: CapsuleEngine | None = None
+gui: AdvancedGUI | None = None
+_gui_task: asyncio.Task | None = None
 
 @app.on_event("startup")
 async def on_startup():
-    global engine
+    global engine, gui, _gui_task
     engine = CapsuleEngine()
     await engine.start_background_tasks()
+    gui = AdvancedGUI(engine, app)
+    if engine.bus:
+        _gui_task = asyncio.create_task(gui.run_broadcasters())
+        engine.add_background_task(_gui_task)
     log.info("Engine started.")
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    global engine, gui, _gui_task
     if engine:
         await engine.shutdown()
+    engine = None
+    gui = None
+    _gui_task = None
 
 @app.get("/healthz")
 async def healthz() -> Dict[str, Any]:

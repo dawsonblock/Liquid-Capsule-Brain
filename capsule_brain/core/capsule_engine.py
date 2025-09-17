@@ -25,6 +25,9 @@ class CapsuleEngine:
         self._background_tasks.append(asyncio.create_task(self.iit_analyzer.run_analysis_loop(self.bus)))
         self._background_tasks.append(asyncio.create_task(self.self_wirer.run(self.bus)))
 
+    def add_background_task(self, task: asyncio.Task) -> None:
+        self._background_tasks.append(task)
+
     async def shutdown(self):
         self._shutdown_event.set()
         for t in self._background_tasks:

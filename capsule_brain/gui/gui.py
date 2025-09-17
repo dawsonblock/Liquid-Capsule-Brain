@@ -39,5 +39,7 @@ class AdvancedGUI:
         while True:
             try:
                 message = await self.engine.bus.get(); await self.broadcast(message)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 log.error(f"GUI broadcaster error: {e}"); await asyncio.sleep(1)
