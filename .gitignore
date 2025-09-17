@@ -2,11 +2,8 @@ __pycache__/
 *.pyc
 .venv/
 .env
-        Liquid
 *.egg-info/
 .coverage
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-
-        main
