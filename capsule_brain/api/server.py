@@ -1,12 +1,13 @@
 import logging
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from capsule_brain.core.capsule_engine import CapsuleEngine
 from capsule_brain.observability.metrics import MetricsMiddleware
 from capsule_brain.observability.metrics import router as metrics_router
+from capsule_brain.security.admin import require_admin_token
 
 log = logging.getLogger(__name__)
 app = FastAPI(title="Capsule Brain Supreme AGI", version="1.0.1")
@@ -40,17 +41,17 @@ async def on_shutdown() -> None:
         engine = None
 
 
-@app.get("/healthz")
+@app.get("/healthz", dependencies=[Depends(require_admin_token)])
 async def healthz() -> dict[str, Any]:
     return {"ok": True}
 
 
-@app.get("/ready")
+@app.get("/ready", dependencies=[Depends(require_admin_token)])
 async def ready() -> dict[str, Any]:
     return {"ready": engine is not None}
 
 
-@app.get("/state/summary")
+@app.get("/state/summary", dependencies=[Depends(require_admin_token)])
 async def state_summary() -> dict[str, Any]:
     if not engine:
         raise HTTPException(status_code=503, detail="engine not ready")
@@ -67,7 +68,7 @@ async def ask(q: str) -> dict[str, Any]:
     return {"ack": True, "context": context, "system": system_prompt}
 
 
-@app.post("/graph/edge")
+@app.post("/graph/edge", dependencies=[Depends(require_admin_token)])
 async def add_edge(
     source: str, target: str, relation: str = "related_to"
 ) -> dict[str, Any]:
