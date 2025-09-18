@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import Any
 
@@ -8,7 +9,6 @@ from fastapi.testclient import TestClient
 
 from capsule_brain.api.dependencies import get_engine
 from capsule_brain.api.server import app
-
 
 ADMIN_HEADERS = {"x-admin-token": "test-admin-token"}
 
@@ -67,14 +67,14 @@ def stub_engine() -> _StubEngine:
 
 
 @pytest.fixture
-def override_engine(stub_engine: _StubEngine) -> _StubEngine:
+def override_engine(stub_engine: _StubEngine) -> Generator[_StubEngine, None, None]:
     app.dependency_overrides[get_engine] = lambda: stub_engine
     yield stub_engine
     app.dependency_overrides.pop(get_engine, None)
 
 
 @pytest.fixture
-def client(override_engine: _StubEngine) -> TestClient:
+def client(override_engine: _StubEngine) -> Generator[TestClient, None, None]:
     with TestClient(app) as client:
         yield client
 

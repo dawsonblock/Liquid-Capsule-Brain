@@ -13,13 +13,13 @@ if TYPE_CHECKING:
 _ENGINE_STATE_ATTR = "capsule_engine"
 
 
-def attach_engine(app: FastAPI, engine: "CapsuleEngine") -> None:
+def attach_engine(app: FastAPI, engine: CapsuleEngine) -> None:
     """Attach the CapsuleEngine instance to app state."""
 
     setattr(app.state, _ENGINE_STATE_ATTR, engine)
 
 
-def detach_engine(app: FastAPI) -> "CapsuleEngine | None":
+def detach_engine(app: FastAPI) -> CapsuleEngine | None:
     """Remove the CapsuleEngine from state and return it if present."""
 
     engine = getattr(app.state, _ENGINE_STATE_ATTR, None)
@@ -28,13 +28,13 @@ def detach_engine(app: FastAPI) -> "CapsuleEngine | None":
     return engine
 
 
-def peek_engine(app: FastAPI) -> "CapsuleEngine | None":
+def peek_engine(app: FastAPI) -> CapsuleEngine | None:
     """Inspect the current CapsuleEngine without enforcing readiness."""
 
     return getattr(app.state, _ENGINE_STATE_ATTR, None)
 
 
-def get_engine(request: Request) -> "CapsuleEngine":
+def get_engine(request: Request) -> CapsuleEngine:
     """Dependency that provides the current engine or raises 503."""
 
     engine = peek_engine(request.app)
@@ -44,4 +44,3 @@ def get_engine(request: Request) -> "CapsuleEngine":
             detail="engine not ready",
         )
     return engine
-

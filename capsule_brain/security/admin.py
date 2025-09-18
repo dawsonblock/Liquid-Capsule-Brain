@@ -8,7 +8,6 @@ from functools import lru_cache
 from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 
-
 ADMIN_HEADER_NAME = "x-admin-token"
 _admin_scheme = APIKeyHeader(name=ADMIN_HEADER_NAME, auto_error=False)
 _LOCAL_PROFILES = {"local", "development", "dev"}

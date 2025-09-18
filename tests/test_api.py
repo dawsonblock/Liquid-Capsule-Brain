@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 
 from capsule_brain.api.server import app
 
-
 ADMIN_HEADERS = {"x-admin-token": "test-admin-token"}
 
 

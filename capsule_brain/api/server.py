@@ -1,10 +1,15 @@
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from capsule_brain.api.dependencies import attach_engine, detach_engine, get_engine, peek_engine
+from capsule_brain.api.dependencies import (
+    attach_engine,
+    detach_engine,
+    get_engine,
+    peek_engine,
+)
 from capsule_brain.core.capsule_engine import CapsuleEngine
 from capsule_brain.observability.metrics import setup_metrics
 from capsule_brain.security.admin import require_admin_token
@@ -20,6 +25,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 setup_metrics(app)
+
+EngineDep = Annotated[CapsuleEngine, Depends(get_engine)]
 
 
 @app.on_event("startup")
@@ -48,12 +55,12 @@ async def ready(request: Request) -> dict[str, Any]:
 
 
 @app.get("/state/summary", dependencies=[Depends(require_admin_token)])
-async def state_summary(engine: CapsuleEngine = Depends(get_engine)) -> dict[str, Any]:
+async def state_summary(engine: EngineDep) -> dict[str, Any]:
     return engine.get_state_summary()
 
 
 @app.post("/ask")
-async def ask(q: str, engine: CapsuleEngine = Depends(get_engine)) -> dict[str, Any]:
+async def ask(q: str, engine: EngineDep) -> dict[str, Any]:
     engine.add_memory("user", q)
     context, system_prompt = engine.belief_state_manager.synthesize_context_for_llm()
     return {"ack": True, "context": context, "system": system_prompt}
@@ -63,8 +70,8 @@ async def ask(q: str, engine: CapsuleEngine = Depends(get_engine)) -> dict[str, 
 async def add_edge(
     source: str,
     target: str,
+    engine: EngineDep,
     relation: str = "related_to",
-    engine: CapsuleEngine = Depends(get_engine),
 ) -> dict[str, Any]:
     engine.add_graph_edge(source, target, relation)
     return {
