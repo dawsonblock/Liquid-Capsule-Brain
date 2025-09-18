@@ -6,6 +6,18 @@ services:
     volumes:
       - ./:/app
     command: ["uvicorn", "capsule_brain.api.server:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      - ADMIN_TOKEN=dev-token
+      - APP_ENV=development
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "curl -fsS -H 'x-admin-token: dev-token' http://localhost:8000/healthz || exit 1",
+      ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
   grafana:
     volumes:
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
@@ -14,3 +26,12 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "wget -q -O- http://localhost:9090/-/ready >/dev/null || exit 1",
+      ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
