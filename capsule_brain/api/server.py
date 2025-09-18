@@ -6,8 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from capsule_brain.api.dependencies import attach_engine, detach_engine, get_engine, peek_engine
 from capsule_brain.core.capsule_engine import CapsuleEngine
-from capsule_brain.observability.metrics import MetricsMiddleware
-from capsule_brain.observability.metrics import router as metrics_router
+from capsule_brain.observability.metrics import setup_metrics
 from capsule_brain.security.admin import require_admin_token
 
 log = logging.getLogger(__name__)
@@ -20,8 +19,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(MetricsMiddleware)
-app.include_router(metrics_router)
+setup_metrics(app)
 
 
 @app.on_event("startup")

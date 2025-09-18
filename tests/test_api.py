@@ -49,8 +49,8 @@ def test_metrics() -> None:
         r = client.get("/metrics")
         assert r.status_code == 200
         text = r.text
-        assert "cb_http_requests_total" in text
-        assert "cb_request_latency_seconds_bucket" in text
+        assert "http_requests_total" in text
+        assert "http_request_duration_seconds_bucket" in text
 
 
 def test_protected_endpoints_require_admin_header() -> None:

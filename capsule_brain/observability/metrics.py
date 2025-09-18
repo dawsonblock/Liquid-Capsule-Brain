@@ -1,67 +1,23 @@
-"""Prometheus metrics plumbing for Capsule Brain."""
+"""Prometheus metrics integration using prometheus-fastapi-instrumentator."""
 
 from __future__ import annotations
 
-import re
-from time import time
+from typing import Set
 
-from fastapi import APIRouter, Response
-from prometheus_client import (
-    CONTENT_TYPE_LATEST,
-    CollectorRegistry,
-    Counter,
-    Histogram,
-    generate_latest,
-)
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
-from starlette.responses import Response as StarletteResponse
-from starlette.types import ASGIApp
+from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
-registry = CollectorRegistry()
-REQUEST_COUNT = Counter(
-    "cb_http_requests_total",
-    "Total HTTP requests",
-    ["method", "path", "status"],
-    registry=registry,
-)
-REQUEST_LATENCY = Histogram(
-    "cb_request_latency_seconds",
-    "Request latency (seconds)",
-    ["method", "path"],
-    registry=registry,
-    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0),
-)
-TOKENS_USED = Counter(
-    "cb_tokens_total",
-    "Total LLM tokens consumed",
-    ["model"],
-    registry=registry,
-)
+_instrumentator = Instrumentator(should_instrument_requests_inprogress=True)
+_configured_apps: Set[int] = set()
 
-router = APIRouter()
 
-@router.get("/metrics")
-async def metrics() -> Response:
-    data = generate_latest(registry)
-    return Response(content=data, media_type=CONTENT_TYPE_LATEST)
+def setup_metrics(app: FastAPI) -> None:
+    """Attach Prometheus instrumentation and expose `/metrics` once per app."""
 
-class MetricsMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp) -> None:
-        super().__init__(app)
+    app_id = id(app)
+    if app_id in _configured_apps:
+        return
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> StarletteResponse:
-        start = time()
-        method = request.method
-        path = request.url.path
+    _instrumentator.instrument(app).expose(app, include_in_schema=False)
+    _configured_apps.add(app_id)
 
-        response = await call_next(request)
-
-        elapsed = time() - start
-        norm_path = re.sub(r"/\d+", "/{id}", path)
-        REQUEST_LATENCY.labels(method, norm_path).observe(elapsed)
-        REQUEST_COUNT.labels(method, norm_path, str(response.status_code)).inc()
-
-        return response
