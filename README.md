@@ -10,20 +10,29 @@ Liquid core + IIT Φ analyzer + Self-Wirer + Overseer + GUI + document Q&A.
 
 ## Quick Start
 
-### Prerequisites
-Run the build validation script to check your environment:
+### Automated Setup
+The fastest way to get started:
 ```bash
-python3 validate_build.py
+./scripts/setup.sh   # Automated environment setup
+make dev             # Start development server
 ```
 
-### Setup
+### Manual Setup
 ```bash
-cp .env.example .env  # Configure your settings
-make dev-setup        # Install dependencies
-make dev              # Start development server
+python3 validate_build.py  # Check prerequisites
+cp .env.example .env        # Configure your settings
+make dev-setup              # Install dependencies
+make dev                    # Start development server
+```
+
+### Health Check
+Verify all services are running:
+```bash
+./scripts/health-check.sh   # Check service health
 ```
 
 For detailed build configuration, see [BUILD_CONFIG.md](BUILD_CONFIG.md).
+For project structure, see [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md).
 
 ## Admin Authentication
 Capsule Brain now enforces an administrator token on sensitive endpoints such as `/healthz`, `/ready`, `/state/summary`, and `/graph/edge`.

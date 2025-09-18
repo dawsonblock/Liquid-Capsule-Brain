@@ -43,8 +43,29 @@ typecheck:
 coverage:
 	coverage run -m pytest && coverage report -m
 
-up-dev:
-	docker compose up --build
+# Cleanup commands
+clean:
+	find . -type f -name "*.pyc" -delete
+	find . -type d -name "__pycache__" -delete
+	find . -type d -name ".pytest_cache" -delete
+	find . -type d -name ".mypy_cache" -delete
+	find . -type d -name ".ruff_cache" -delete
 
-down-dev:
-	docker compose down
+# Help command
+help:
+	@echo "Available commands:"
+	@echo "  dev        - Start development server with auto-reload"
+	@echo "  run        - Run production server"
+	@echo "  build      - Build Docker image"
+	@echo "  up         - Start production services with Docker Compose"
+	@echo "  up-dev     - Start development services with Docker Compose"
+	@echo "  down       - Stop production services"
+	@echo "  down-dev   - Stop development services"
+	@echo "  test       - Run tests"
+	@echo "  fmt        - Format code with black and isort"
+	@echo "  lint       - Lint code with ruff"
+	@echo "  typecheck  - Type check with mypy"
+	@echo "  coverage   - Run tests with coverage report"
+	@echo "  dev-setup  - Setup development environment"
+	@echo "  clean      - Clean up cache files"
+	@echo "  help       - Show this help message"

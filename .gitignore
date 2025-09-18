@@ -1,9 +1,46 @@
 __pycache__/
-*.pyc
-.venv/
+*.py[cod]
+*$py.class
+
+# Environment files
 .env
-*.egg-info/
-.coverage
-.pytest_cache/
+.env.local
+.env.*.local
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Cache directories
 .mypy_cache/
+.pytest_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
