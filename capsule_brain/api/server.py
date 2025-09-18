@@ -62,8 +62,22 @@ async def state_summary(engine: EngineDep) -> dict[str, Any]:
 @app.post("/ask")
 async def ask(q: str, engine: EngineDep) -> dict[str, Any]:
     engine.add_memory("user", q)
+    engine.belief_state_manager.current_query = q
+    
+    # Generate LLM response using DeepSeek
+    llm_response = await engine.belief_state_manager.generate_llm_response()
+    
+    # Add the response to memory
+    if llm_response.get("text"):
+        engine.add_memory("assistant", llm_response["text"])
+    
     context, system_prompt = engine.belief_state_manager.synthesize_context_for_llm()
-    return {"ack": True, "context": context, "system": system_prompt}
+    return {
+        "ack": True, 
+        "context": context, 
+        "system": system_prompt,
+        "llm_response": llm_response
+    }
 
 
 @app.post("/graph/edge", dependencies=[Depends(require_admin_token)])

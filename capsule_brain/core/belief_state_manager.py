@@ -6,6 +6,8 @@ import logging
 import time
 from typing import Any
 
+from capsule_brain.llm_adapter.deepseek_client import DeepSeekClient
+
 log = logging.getLogger(__name__)
 
 
@@ -19,6 +21,7 @@ class BeliefStateManager:
         self.current_plan: dict[str, Any] = {}
         self.self_awareness_metrics: dict[str, Any] = {}
         self.last_update: float = time.time()
+        self.deepseek_client = DeepSeekClient()
 
     def update_state(
         self,
@@ -43,6 +46,14 @@ class BeliefStateManager:
             f"Self-metrics: phi={self.self_awareness_metrics.get('phi', 0.0):.2f}",
         ]
         system_prompt = (
-            "You are Capsule Brain. Be succinct, cite tools you would call, and propose next steps."
+            "You are Capsule Brain Supreme AGI. Be succinct, cite tools "
+            "you would call, and propose next steps."
         )
         return "\n".join(context_lines), system_prompt
+
+    async def generate_llm_response(self) -> dict[str, Any]:
+        """Generate a response using DeepSeek V3."""
+        context, system_prompt = self.synthesize_context_for_llm()
+        return await self.deepseek_client.generate_response(
+            context, system_prompt
+        )
