@@ -3,8 +3,18 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import uvicorn
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"✅ Loaded environment from {env_path}")
+else:
+    print("⚠️  No .env file found")
 
 
 def main() -> None:

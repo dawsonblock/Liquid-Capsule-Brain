@@ -34,8 +34,7 @@ dist/
 build/
 *.egg-info/
 
-# Docker
-.dockerignore
+# Docker (remove .dockerignore from gitignore - it should be committed)
 
 # Logs
 *.log

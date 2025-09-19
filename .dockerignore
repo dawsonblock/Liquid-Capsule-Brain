@@ -1,0 +1,72 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Cache directories
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation (not needed in container)
+docs/
+*.md
+!README.md
+
+# Development files
+.env
+.env.*
+# Note: requirements-dev.txt is needed for Dockerfile.dev
+
+# Test files
+tests/
+htmlcov/
+.coverage
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Scripts (not needed in container)
+scripts/
+
+# Configuration files (will be mounted or copied separately)
+config/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Deployment files
+deploy/
+k8s/
+grafana/
+prometheus/
+
+# Legacy files
+docker-compose*.yml
+Makefile
+validate_build.py

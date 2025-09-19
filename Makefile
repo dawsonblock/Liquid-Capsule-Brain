@@ -9,21 +9,21 @@ dev:
 run:
 	python launch_capsule_brain.py
 
-# Docker commands (using new config structure)
+# Docker commands (using root directory configs for now)
 build:
 	docker build -t capsule-brain:latest .
 
 up:
-	docker compose -f config/docker/docker-compose.yml up --build
+	docker compose up --build
 
 up-dev:
-	docker compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.override.yml up --build
+	docker compose -f docker-compose.yml -f docker-compose.override.yml up --build
 
 down:
-	docker compose -f config/docker/docker-compose.yml down
+	docker compose down
 
 down-dev:
-	docker compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.override.yml down
+	docker compose -f docker-compose.yml -f docker-compose.override.yml down
 
 test:
 	pytest -q
