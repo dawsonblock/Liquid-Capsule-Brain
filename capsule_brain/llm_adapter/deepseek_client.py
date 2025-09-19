@@ -66,6 +66,7 @@ class DeepSeekClient:
             return {
                 "text": response.choices[0].message.content or "",
                 "model": response.model,
+                "finish_reason": getattr(response.choices[0], "finish_reason", None),
                 "usage": {
                     "prompt_tokens": (
                         response.usage.prompt_tokens if response.usage else 0
