@@ -3,7 +3,7 @@ services:
     build: ../..
     env_file: ../../.env
     environment:
-      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-dev-secure-token-123}
       - APP_ENV=${APP_ENV:-production}
     ports:
       - "8000:8000"
@@ -14,7 +14,7 @@ services:
     healthcheck:
       test: [
         "CMD-SHELL",
-        "curl -fsS -H 'x-admin-token: ${ADMIN_TOKEN}' http://localhost:8000/healthz || exit 1",
+        "curl -fsS -H 'x-admin-token: ${ADMIN_TOKEN:-dev-secure-token-123}' http://localhost:8000/healthz || exit 1",
       ]
       interval: 10s
       timeout: 3s

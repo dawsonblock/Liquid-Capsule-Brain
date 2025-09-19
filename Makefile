@@ -14,16 +14,16 @@ build:
 	docker build -t capsule-brain:latest .
 
 up:
-	docker compose up --build
+	docker compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.override.yml up --build -d
 
 up-dev:
-	docker compose -f docker-compose.yml -f docker-compose.override.yml up --build
+	docker compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.override.yml up --build
 
 down:
-	docker compose down
+	docker compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.override.yml down
 
 down-dev:
-	docker compose -f docker-compose.yml -f docker-compose.override.yml down
+	docker compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.override.yml down
 
 test:
 	pytest -q
