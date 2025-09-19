@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
 from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -19,7 +21,31 @@ from capsule_brain.observability.metrics import setup_metrics
 from capsule_brain.security.admin import require_admin_token
 
 log = logging.getLogger(__name__)
-app = FastAPI(title="Capsule Brain Supreme AGI", version="1.0.1")
+
+
+@asynccontextmanager
+async def app_lifespan(app: FastAPI) -> AsyncIterator[None]:
+    capsule_engine = CapsuleEngine()
+    attach_engine(app, capsule_engine)
+    await capsule_engine.start_background_tasks(app)
+    gui = AdvancedGUI(capsule_engine, app)
+    app.state.gui = gui
+    broadcaster_task = asyncio.create_task(app.state.gui.run_broadcasters())
+    log.info("Engine started.")
+    try:
+        yield
+    finally:
+        broadcaster_task.cancel()
+        try:
+            await broadcaster_task
+        except asyncio.CancelledError:
+            pass
+        attached = detach_engine(app)
+        if attached:
+            await attached.shutdown()
+
+
+app = FastAPI(title="Capsule Brain Supreme AGI", version="1.0.1", lifespan=app_lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,26 +63,6 @@ EngineDep = Annotated[CapsuleEngine, Depends(get_engine)]
 
 class AskRequest(BaseModel):
     q: str
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    capsule_engine = CapsuleEngine()
-    attach_engine(app, capsule_engine)
-    await capsule_engine.start_background_tasks(app)
-    # Initialize GUI
-    gui = AdvancedGUI(capsule_engine, app)
-    app.state.gui = gui
-    # Start GUI broadcaster
-    asyncio.create_task(app.state.gui.run_broadcasters())
-    log.info("Engine started.")
-
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    attached = detach_engine(app)
-    if attached:
-        await attached.shutdown()
 
 
 @app.get("/healthz", dependencies=[Depends(require_admin_token)])
