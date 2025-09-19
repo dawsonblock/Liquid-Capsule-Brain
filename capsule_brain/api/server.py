@@ -38,6 +38,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Configure Prometheus metrics before app startup to avoid runtime middleware errors
+setup_metrics(app)
+
 EngineDep = Annotated[CapsuleEngine, Depends(get_engine)]
 
 
@@ -50,7 +53,6 @@ async def startup_event() -> None:
     capsule_engine = CapsuleEngine()
     attach_engine(app, capsule_engine)
     await capsule_engine.start_background_tasks(app)
-    setup_metrics(app)
     # Initialize GUI
     gui = AdvancedGUI(capsule_engine, app)
     app.state.gui = gui

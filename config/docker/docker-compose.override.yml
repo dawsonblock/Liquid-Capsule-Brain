@@ -12,7 +12,7 @@ services:
     healthcheck:
       test: [
         "CMD-SHELL",
-        "curl -fsS -H 'x-admin-token: dev-token' http://localhost:8000/healthz || exit 1",
+        "curl -fsS http://localhost:8000/state/summary >/dev/null || exit 1",
       ]
       interval: 10s
       timeout: 3s
