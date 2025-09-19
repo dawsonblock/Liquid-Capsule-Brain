@@ -26,7 +26,7 @@ down-dev:
 	docker compose -f config/docker/docker-compose.yml -f config/docker/docker-compose.override.yml down
 
 test:
-	pytest -q
+	python3 -m pytest -q
 
 fmt:
 	black . && isort .

@@ -27,6 +27,9 @@ class _StubBeliefManager:
         self.calls += 1
         return ("stub-context", "stub-system")
 
+    async def generate_llm_response(self) -> dict[str, Any]:
+        return {}
+
 
 class _StubGraph:
     def __init__(self) -> None:

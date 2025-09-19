@@ -1,18 +1,9 @@
+import asyncio
 import logging
 import os
-import asyncio
 from typing import Annotated, Any
 
-from fastapi import (
-    Body,
-    Depends,
-    FastAPI,
-    File,
-    Form,
-    HTTPException,
-    Request,
-    UploadFile,
-)
+from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -86,7 +77,7 @@ async def state_summary(engine: EngineDep) -> dict[str, Any]:
 @app.post("/ask")
 async def ask(
     engine: EngineDep,
-    payload: AskRequest | None = Body(default=None),
+    payload: AskRequest | None = Body(default=None),  # noqa: B008
     q: str | None = None,
 ) -> dict[str, Any]:
     question = payload.q if (payload and getattr(payload, "q", None)) else q
@@ -94,27 +85,27 @@ async def ask(
         raise HTTPException(status_code=422, detail="Missing 'q' in body or query")
     engine.add_memory("user", question)
     engine.belief_state_manager.current_query = question
-    
+
     # Generate LLM response using DeepSeek
     llm_response = await engine.belief_state_manager.generate_llm_response()
-    
+
     # Add the response to memory
     if llm_response.get("text"):
         engine.add_memory("assistant", llm_response["text"])
-    
+
     context, system_prompt = engine.belief_state_manager.synthesize_context_for_llm()
     return {
-        "ack": True, 
-        "context": context, 
+        "ack": True,
+        "context": context,
         "system": system_prompt,
-        "llm_response": llm_response
+        "llm_response": llm_response,
     }
 
 
 @app.post("/ask_with_document")
 async def ask_with_document(
     engine: EngineDep,
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008
     q: str = Form("Document question"),
 ) -> dict[str, Any]:
     # Minimal handling: record the file reference and generate a response

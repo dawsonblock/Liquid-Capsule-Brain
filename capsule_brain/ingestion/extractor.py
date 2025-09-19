@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import io
-import os
 import mimetypes
+import os
 import zipfile
-from typing import Any, Dict, Tuple, List
+from typing import Any
 
 from pypdf import PdfReader
 
@@ -25,7 +25,7 @@ def _safe_decode(data: bytes) -> str:
 def _extract_text_from_pdf_bytes(data: bytes) -> str:
     buf = io.BytesIO(data)
     reader = PdfReader(buf)
-    parts: List[str] = []
+    parts: list[str] = []
     for page in reader.pages:
         try:
             txt = page.extract_text() or ""
@@ -48,7 +48,7 @@ def preview_text(text: str, max_chars: int = MAX_PREVIEW_CHARS) -> str:
     return snippet + "\n... [truncated]"
 
 
-def extract_bytes(filename: str, content_type: str | None, data: bytes) -> Tuple[str, Dict[str, Any]]:
+def extract_bytes(filename: str, content_type: str | None, data: bytes) -> tuple[str, dict[str, Any]]:
     """Extract textual content from bytes based on file type.
 
     Returns (text, meta) where meta contains filename, type, size, and extra fields.
@@ -59,7 +59,7 @@ def extract_bytes(filename: str, content_type: str | None, data: bytes) -> Tuple
     ext = (os.path.splitext(filename)[1] or "").lower()
     ctype = (content_type or mimetypes.guess_type(filename)[0] or "").lower()
 
-    meta: Dict[str, Any] = {
+    meta: dict[str, Any] = {
         "filename": filename,
         "bytes": len(data),
         "content_type": ctype,
@@ -81,8 +81,8 @@ def extract_bytes(filename: str, content_type: str | None, data: bytes) -> Tuple
     # ZIP archive
     if ext in SUPPORTED_ARCHIVE_EXTS or ctype in ("application/zip", "application/x-zip-compressed"):
         meta["type"] = "zip"
-        extracted_files: List[str] = []
-        parts: List[str] = []
+        extracted_files: list[str] = []
+        parts: list[str] = []
         with zipfile.ZipFile(io.BytesIO(data)) as zf:
             for info in zf.infolist():
                 if info.is_dir():
