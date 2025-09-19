@@ -84,7 +84,7 @@ async def state_summary(engine: EngineDep) -> dict[str, Any]:
 @app.post("/ask")
 async def ask(
     engine: EngineDep,
-    payload: Annotated[AskRequest | None, Body(None)] = None,
+    payload: AskRequest | None = Body(default=None),
     q: str | None = None,
 ) -> dict[str, Any]:
     question = payload.q if (payload and getattr(payload, "q", None)) else q
