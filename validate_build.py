@@ -8,6 +8,15 @@ import sys
 from collections.abc import Iterable
 from pathlib import Path
 
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    # For Python < 3.11, you would need to pip install tomli
+    try:
+        import tomli as tomllib
+    except ImportError:
+        tomllib = None
+
 
 def check_file_syntax(filepath: Path) -> tuple[bool, str | None]:
     """Check if a Python file has valid syntax."""
@@ -69,6 +78,48 @@ def _check_gitignore(path: Path) -> None:
         _print_status("✅", ".gitignore has required entries")
 
 
+def _check_python_version(pyproject_path: Path) -> bool:
+    """Check if the current Python version meets the project's requirements."""
+    if not pyproject_path.exists():
+        _print_status("⚠️", f"{pyproject_path} not found, skipping Python version check.")
+        return True  # Cannot check, so we don't fail
+
+    if tomllib is None:
+        _print_status("⚠️", "tomli is not installed, skipping Python version check for older Python.")
+        return True
+
+    try:
+        with pyproject_path.open("rb") as f:
+            pyproject_data = tomllib.load(f)
+    except tomllib.TOMLDecodeError as exc:
+        _print_status("❌", f"Error parsing {pyproject_path}: {exc}")
+        return False
+
+    requires_python = pyproject_data.get("project", {}).get("requires-python")
+    if not requires_python:
+        _print_status("⚠️", "No 'requires-python' found in pyproject.toml.")
+        return True  # No requirement specified
+
+    # Simple parsing for ">=MAJ.MIN" format
+    try:
+        spec = requires_python.strip().removeprefix(">=")
+        req_major, req_minor = map(int, spec.split("."))
+        current_major, current_minor = sys.version_info.major, sys.version_info.minor
+
+        if (current_major, current_minor) >= (req_major, req_minor):
+            _print_status("✅", f"Python version {current_major}.{current_minor} meets requirement '{requires_python}'")
+            return True
+        else:
+            _print_status(
+                "❌",
+                f"Python version {current_major}.{current_minor} does not meet requirement '{requires_python}'",
+            )
+            return False
+    except ValueError:
+        _print_status("⚠️", f"Could not parse 'requires-python' value: '{requires_python}'. Skipping check.")
+        return True
+
+
 def _check_requirements(path: Path) -> None:
     if not path.exists():
         return
@@ -86,6 +137,9 @@ def main() -> int:
     print("=== Liquid Capsule Brain Build Validation ===")
     print(f"Python version: {sys.version}")
 
+    pyproject_path = Path("pyproject.toml")
+    is_version_ok = _check_python_version(pyproject_path)
+
     required_files = [
         Path(".env.example"),
         Path(".env.reverse-proxy.example"),
@@ -95,21 +149,30 @@ def main() -> int:
         Path("capsule_brain/api/server.py"),
         Path("Dockerfile"),
         Path("Makefile"),
+        pyproject_path,
     ]
     missing_files = _check_required_files(required_files)
 
+    capsule_brain_path = Path("capsule_brain")
     python_files = [
         Path("launch_capsule_brain.py"),
-        Path("capsule_brain/api/server.py"),
+        Path(__file__),
     ]
+    if capsule_brain_path.exists() and capsule_brain_path.is_dir():
+        python_files.extend(capsule_brain_path.rglob("*.py"))
+
     syntax_errors = _check_python_syntax(python_files)
 
     _check_gitignore(Path(".gitignore"))
     _check_requirements(Path("requirements.txt"))
 
     print("\n=== Summary ===")
+    if not is_version_ok:
+        _print_status("❌", "Python version requirement not met.")
+        return 1
+
     if missing_files:
-        _print_status("❌", f"Missing files: {missing_files}")
+        _print_status("❌", f"Missing files: {[str(f) for f in missing_files]}")
         return 1
 
     if syntax_errors:
