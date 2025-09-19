@@ -112,8 +112,8 @@ async def ask(
 @app.post("/ask_with_document")
 async def ask_with_document(
     engine: EngineDep,
-    file: Annotated[UploadFile, File(...)],
-    q: Annotated[str | None, Form(None)] = None,
+    file: UploadFile = File(...),
+    q: str = Form("Document question"),
 ) -> dict[str, Any]:
     # Minimal handling: record the file reference and generate a response
     q_value = q or "Document question"
