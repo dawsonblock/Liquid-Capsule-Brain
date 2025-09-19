@@ -4,7 +4,7 @@ SHELL := /bin/bash
 
 # Development commands
 dev:
-	python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && uvicorn capsule_brain.api.server:app --host 0.0.0.0 --port 8000 --reload
+	python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python launch_capsule_brain.py
 
 run:
 	python launch_capsule_brain.py

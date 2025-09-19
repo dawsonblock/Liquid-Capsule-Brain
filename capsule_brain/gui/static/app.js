@@ -39,10 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
         form.append('q', message || 'Document question');
         form.append('file', f);
         const resp = await fetch('/ask_with_document', { method: 'POST', body: form });
-        await resp.json();
+        const data = await resp.json();
+        const assistant = (data && data.llm_response && data.llm_response.text) || '(no response)';
+        appendMessage(assistant, 'assistant');
       } else {
         const response = await fetch('/ask', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ q: message }) });
-        await response.json();
+        const data = await response.json();
+        const assistant = (data && data.llm_response && data.llm_response.text) || '(no response)';
+        appendMessage(assistant, 'assistant');
       }
     } catch (e) { appendMessage('Error: Request failed', 'system'); }
   }
