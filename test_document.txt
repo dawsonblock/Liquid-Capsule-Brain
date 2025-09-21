@@ -1,0 +1,17 @@
+Capsule Brain Supreme AGI - Test Document
+
+This is a test document to demonstrate the file upload and extraction functionality.
+
+Key Features:
+- PDF text extraction
+- Text file processing
+- ZIP archive handling
+- Multiple file format support
+
+The system can now:
+1. Extract text from uploaded files
+2. Process the content with the AI
+3. Provide intelligent responses based on document content
+4. Show detailed processing information
+
+This represents a significant improvement in the platform's capabilities.

@@ -31,6 +31,7 @@ from capsule_brain.observability.metrics import (
     setup_metrics,
 )
 from capsule_brain.security.admin import require_admin_token
+from capsule_brain.ingestion.extractor import extract_bytes
 
 log = logging.getLogger(__name__)
 
@@ -151,37 +152,100 @@ async def ask_with_document(
     file: UploadFile = File(...),  # noqa: B008
     q: str = Form("Document question"),
 ) -> dict[str, Any]:
-    # Minimal handling: record the file reference and generate a response
     q_value = q or "Document question"
-    engine.add_memory("user", f"{q_value}\n[Attached file: {file.filename}]")
-    engine.belief_state_manager.current_query = q_value
-    llm_response = await engine.belief_state_manager.generate_llm_response()
-    if llm_response.get("text"):
-        engine.add_memory("assistant", llm_response["text"])
-    # Record DeepSeek token usage metrics if present
-    usage = llm_response.get("usage") or {}
+    
     try:
-        prompt_tokens = usage.get("prompt_tokens", 0) or 0
-        completion_tokens = usage.get("completion_tokens", 0) or 0
-        model_name = str(llm_response.get("model", "deepseek-chat"))
-        if (prompt_tokens or completion_tokens) and model_name:
-            record_llm_tokens(
-                "deepseek",
-                model_name,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-            )
-    except Exception:
-        pass
-    context, system_prompt = (
-        engine.belief_state_manager.synthesize_context_for_llm()
-    )
-    return {
-        "ack": True,
-        "context": context,
-        "system": system_prompt,
-        "llm_response": llm_response,
-    }
+        # Read the uploaded file content
+        file_content = await file.read()
+        log.info(f"Processing uploaded file: {file.filename} ({len(file_content)} bytes)")
+        
+        # Extract text content from the file
+        extracted_text, file_meta = extract_bytes(
+            file.filename or "unknown",
+            file.content_type,
+            file_content
+        )
+        
+        log.info(f"Extracted text length: {len(extracted_text)} characters")
+        log.info(f"File metadata: {file_meta}")
+        
+        # Create a comprehensive query with the document content
+        document_query = f"""
+Question: {q_value}
+
+Document: {file.filename}
+File Type: {file_meta.get('type', 'unknown')}
+File Size: {file_meta.get('bytes', 0)} bytes
+
+Document Content:
+{extracted_text[:8000]}  # Limit to first 8000 chars to avoid token limits
+"""
+        
+        # Add to memory with extracted content
+        engine.add_memory("user", document_query)
+        engine.belief_state_manager.current_query = q_value
+        
+        # Update belief state with document context
+        engine.belief_state_manager.retrieved_knowledge = [
+            f"Document: {file.filename} ({file_meta.get('type', 'unknown')})",
+            f"Content preview: {extracted_text[:200]}..."
+        ]
+        
+        # Generate LLM response
+        llm_response = await engine.belief_state_manager.generate_llm_response()
+        
+        if llm_response.get("text"):
+            engine.add_memory("assistant", llm_response["text"])
+            
+        # Record DeepSeek token usage metrics if present
+        usage = llm_response.get("usage") or {}
+        try:
+            prompt_tokens = usage.get("prompt_tokens", 0) or 0
+            completion_tokens = usage.get("completion_tokens", 0) or 0
+            model_name = str(llm_response.get("model", "deepseek-chat"))
+            if (prompt_tokens or completion_tokens) and model_name:
+                record_llm_tokens(
+                    "deepseek",
+                    model_name,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                )
+        except Exception:
+            pass
+            
+        context, system_prompt = (
+            engine.belief_state_manager.synthesize_context_for_llm()
+        )
+        
+        return {
+            "ack": True,
+            "context": context,
+            "system": system_prompt,
+            "llm_response": llm_response,
+            "file_processed": {
+                "filename": file.filename,
+                "type": file_meta.get("type"),
+                "size": file_meta.get("bytes"),
+                "extracted_length": len(extracted_text),
+                "preview": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text
+            }
+        }
+        
+    except Exception as e:
+        log.error(f"Error processing uploaded file: {e}")
+        # Fallback: just record the filename without content
+        engine.add_memory("user", f"{q_value}\n[Attached file: {file.filename} - processing failed: {str(e)}]")
+        engine.belief_state_manager.current_query = q_value
+        
+        llm_response = await engine.belief_state_manager.generate_llm_response()
+        if llm_response.get("text"):
+            engine.add_memory("assistant", llm_response["text"])
+            
+        return {
+            "ack": True,
+            "error": f"File processing failed: {str(e)}",
+            "llm_response": llm_response,
+        }
 
 
 @app.get("/debug/env")

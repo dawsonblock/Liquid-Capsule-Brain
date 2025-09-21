@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: white; }
+        .test { background: #333; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        .success { border-left: 4px solid #22c55e; }
+        .error { border-left: 4px solid #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>🧠 Capsule Brain Test Page</h1>
+    
+    <div class="test success">
+        <h3>✅ Server Connection</h3>
+        <p>If you can see this, the server is working!</p>
+    </div>
+    
+    <div class="test">
+        <h3>🔧 JavaScript Test</h3>
+        <p id="js-test">Testing JavaScript...</p>
+        <button onclick="testJS()">Test JavaScript</button>
+    </div>
+    
+    <div class="test">
+        <h3>🌐 External Resources Test</h3>
+        <p id="external-test">Testing external resources...</p>
+    </div>
+    
+    <div class="test">
+        <h3>📱 Main App Test</h3>
+        <p><a href="/" style="color: #0ea5e9;">Go to Main App</a></p>
+    </div>
+    
+    <script>
+        function testJS() {
+            document.getElementById('js-test').innerHTML = '✅ JavaScript is working!';
+            document.getElementById('js-test').style.color = '#22c55e';
+        }
+        
+        // Test external resources
+        window.addEventListener('load', function() {
+            const testEl = document.getElementById('external-test');
+            
+            // Test if we can load external scripts
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/marked/5.1.1/marked.min.js';
+            script.onload = function() {
+                testEl.innerHTML = '✅ External resources loading successfully!';
+                testEl.style.color = '#22c55e';
+            };
+            script.onerror = function() {
+                testEl.innerHTML = '❌ External resources failed to load';
+                testEl.style.color = '#ef4444';
+            };
+            document.head.appendChild(script);
+        });
+        
+        // Auto-run JS test
+        setTimeout(testJS, 1000);
+    </script>
+</body>
+</html>

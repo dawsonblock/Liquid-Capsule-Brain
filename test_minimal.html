@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: white; }
+        .test { background: #333; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        .success { border-left: 4px solid #22c55e; }
+        .error { border-left: 4px solid #ef4444; }
+        .loading { border-left: 4px solid #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>🧠 Minimal Capsule Brain Test</h1>
+    
+    <div class="test loading" id="test1">
+        <h3>⏳ Test 1: Basic JavaScript</h3>
+        <p id="test1-result">Testing...</p>
+    </div>
+    
+    <div class="test loading" id="test2">
+        <h3>⏳ Test 2: DOM Manipulation</h3>
+        <p id="test2-result">Testing...</p>
+    </div>
+    
+    <div class="test loading" id="test3">
+        <h3>⏳ Test 3: External Scripts</h3>
+        <p id="test3-result">Testing...</p>
+    </div>
+    
+    <div class="test loading" id="test4">
+        <h3>⏳ Test 4: WebSocket Connection</h3>
+        <p id="test4-result">Testing...</p>
+    </div>
+    
+    <div class="test loading" id="test5">
+        <h3>⏳ Test 5: Main App Loading</h3>
+        <p id="test5-result">Testing...</p>
+        <button onclick="testMainApp()">Load Main App</button>
+    </div>
+    
+    <script>
+        // Test 1: Basic JavaScript
+        function test1() {
+            const result = document.getElementById('test1-result');
+            try {
+                const test = 1 + 1;
+                result.textContent = `✅ JavaScript working: 1 + 1 = ${test}`;
+                document.getElementById('test1').className = 'test success';
+            } catch (e) {
+                result.textContent = `❌ JavaScript error: ${e.message}`;
+                document.getElementById('test1').className = 'test error';
+            }
+        }
+        
+        // Test 2: DOM Manipulation
+        function test2() {
+            const result = document.getElementById('test2-result');
+            try {
+                const newDiv = document.createElement('div');
+                newDiv.textContent = 'DOM manipulation successful';
+                result.appendChild(newDiv);
+                document.getElementById('test2').className = 'test success';
+            } catch (e) {
+                result.textContent = `❌ DOM error: ${e.message}`;
+                document.getElementById('test2').className = 'test error';
+            }
+        }
+        
+        // Test 3: External Scripts
+        function test3() {
+            const result = document.getElementById('test3-result');
+            try {
+                // Test if we can load external scripts
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/marked/5.1.1/marked.min.js';
+                script.onload = function() {
+                    if (window.marked) {
+                        result.textContent = '✅ External scripts loading successfully';
+                        document.getElementById('test3').className = 'test success';
+                    } else {
+                        result.textContent = '❌ External script loaded but not available';
+                        document.getElementById('test3').className = 'test error';
+                    }
+                };
+                script.onerror = function() {
+                    result.textContent = '❌ External script failed to load';
+                    document.getElementById('test3').className = 'test error';
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                result.textContent = `❌ External script error: ${e.message}`;
+                document.getElementById('test3').className = 'test error';
+            }
+        }
+        
+        // Test 4: WebSocket Connection
+        function test4() {
+            const result = document.getElementById('test4-result');
+            try {
+                const ws = new WebSocket('ws://localhost:8000/ws');
+                ws.onopen = function() {
+                    result.textContent = '✅ WebSocket connection successful';
+                    document.getElementById('test4').className = 'test success';
+                    ws.close();
+                };
+                ws.onerror = function() {
+                    result.textContent = '❌ WebSocket connection failed';
+                    document.getElementById('test4').className = 'test error';
+                };
+                ws.onclose = function() {
+                    // Connection closed, but we already handled success/error
+                };
+            } catch (e) {
+                result.textContent = `❌ WebSocket error: ${e.message}`;
+                document.getElementById('test4').className = 'test error';
+            }
+        }
+        
+        // Test 5: Main App Loading
+        function testMainApp() {
+            const result = document.getElementById('test5-result');
+            try {
+                // Try to load the main app script
+                const script = document.createElement('script');
+                script.src = '/static/app.js';
+                script.onload = function() {
+                    if (window.capsuleBrainApp) {
+                        result.textContent = '✅ Main app loaded successfully';
+                        document.getElementById('test5').className = 'test success';
+                    } else {
+                        result.textContent = '❌ Main app script loaded but not initialized';
+                        document.getElementById('test5').className = 'test error';
+                    }
+                };
+                script.onerror = function() {
+                    result.textContent = '❌ Main app script failed to load';
+                    document.getElementById('test5').className = 'test error';
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                result.textContent = `❌ Main app error: ${e.message}`;
+                document.getElementById('test5').className = 'test error';
+            }
+        }
+        
+        // Run tests automatically
+        window.addEventListener('load', function() {
+            console.log('🧪 Running minimal tests...');
+            test1();
+            test2();
+            test3();
+            test4();
+        });
+    </script>
+</body>
+</html>

@@ -373,11 +373,6 @@ class CapsuleBrainApp {
 
     // Show thinking indicator
     this.showThinkingIndicator();
-    
-    // Show file processing indicator if files are attached
-    if (files.length > 0) {
-      this.showNotification(`Processing ${files.length} file(s)...`, 'info');
-    }
 
     // Clear input
     chatInput.value = '';
@@ -414,30 +409,6 @@ class CapsuleBrainApp {
       
       // Hide thinking indicator
       this.hideThinkingIndicator();
-      
-      // Show file processing results if available
-      if (data.file_processed) {
-        const fileInfo = data.file_processed;
-        this.showNotification(
-          `File processed: ${fileInfo.filename} (${fileInfo.type}, ${fileInfo.size} bytes, ${fileInfo.extracted_length} chars extracted)`,
-          'success'
-        );
-        
-        // Add file processing info to chat
-        this.appendMessage(
-          `📄 **File Processed Successfully**\n` +
-          `**Filename:** ${fileInfo.filename}\n` +
-          `**Type:** ${fileInfo.type}\n` +
-          `**Size:** ${fileInfo.size} bytes\n` +
-          `**Content Extracted:** ${fileInfo.extracted_length} characters\n\n` +
-          `**Content Preview:**\n${fileInfo.preview}`,
-          'system'
-        );
-      }
-      
-      if (data.error) {
-        this.appendMessage(`❌ **File Processing Error:** ${data.error}`, 'system');
-      }
       
       if (data.llm_response?.text) {
         this.appendMessage(data.llm_response.text, 'assistant');
@@ -1055,63 +1026,28 @@ class CapsuleBrainApp {
   }
 
   hideLoadingScreen() {
-    console.log('🔄 Attempting to hide loading screen...');
     const loadingScreen = document.getElementById('loadingScreen');
     if (loadingScreen) {
-      console.log('✅ Loading screen element found');
-      console.log('📊 Current loading screen state:', {
-        classList: Array.from(loadingScreen.classList),
-        display: loadingScreen.style.display,
-        visibility: window.getComputedStyle(loadingScreen).visibility,
-        opacity: window.getComputedStyle(loadingScreen).opacity
-      });
-      
       setTimeout(() => {
-        console.log('🔄 Adding hidden class...');
         loadingScreen.classList.add('hidden');
-        console.log('📊 After adding hidden class:', {
-          classList: Array.from(loadingScreen.classList),
-          display: window.getComputedStyle(loadingScreen).display
-        });
-        
         setTimeout(() => {
-          console.log('🔄 Setting display to none...');
           loadingScreen.style.display = 'none';
-          console.log('✅ Loading screen hidden successfully');
         }, 500);
-      }, 1000);
-    } else {
-      console.error('❌ Loading screen element not found!');
+      }, 1000); // Reduced from 1500ms to 1000ms
     }
   }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 DOM Content Loaded - Starting initialization...');
-  console.log('📊 DOM State:', {
-    readyState: document.readyState,
-    bodyExists: !!document.body,
-    loadingScreenExists: !!document.getElementById('loadingScreen'),
-    appContainerExists: !!document.getElementById('app')
-  });
-  
   try {
-    console.log('🔄 Creating CapsuleBrainApp instance...');
     window.capsuleBrainApp = new CapsuleBrainApp();
-    console.log('✅ CapsuleBrainApp created successfully');
   } catch (error) {
     console.error('❌ Error initializing Capsule Brain App:', error);
-    console.error('❌ Error stack:', error.stack);
-    
     // Fallback: hide loading screen even if there's an error
-    console.log('🔄 Fallback: Hiding loading screen due to error...');
     const loadingScreen = document.getElementById('loadingScreen');
     if (loadingScreen) {
       loadingScreen.style.display = 'none';
-      console.log('✅ Loading screen hidden via fallback');
-    } else {
-      console.error('❌ Loading screen not found for fallback');
     }
   }
 });
