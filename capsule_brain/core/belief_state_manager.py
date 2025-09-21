@@ -35,6 +35,10 @@ class BeliefStateManager:
         self.current_plan = current_plan
         self.self_awareness_metrics = self_awareness_metrics
         self.last_update = time.time()
+        
+        # Broadcast state update to GUI
+        if hasattr(self.engine, 'broadcast_belief_state_update'):
+            self.engine.broadcast_belief_state_update()
 
     def synthesize_context_for_llm(self) -> tuple[str, str]:
         """Return ``(context, system_prompt)`` strings for LLM calls."""

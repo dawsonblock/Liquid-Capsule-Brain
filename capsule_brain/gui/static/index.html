@@ -5,45 +5,386 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Capsule Brain S-AGI :: Control Center</title>
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/5.1.1/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-brand">
-      <div class="nav-logo">🧠</div>
-      <h1>Capsule Brain S-AGI</h1>
-      <div class="nav-status" id="connectionStatus">
-          <span class="status-dot"></span><span id="statusText">Connecting...</span>
+  <!-- Loading Screen -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">🧠</div>
+      <div class="loading-text">Initializing Capsule Brain...</div>
+      <div class="loading-progress">
+        <div class="progress-bar"></div>
       </div>
     </div>
-    <div class="nav-tabs">
-      <button class="nav-tab active" data-panel="chat">💬 Chat</button>
-      <button class="nav-tab" data-panel="system">📊 System</button>
-    </div>
-  </nav>
-  <main class="main-content">
-    <div class="panel active" id="chatPanel">
-      <div class="chat-container">
-        <div class="chat-messages" id="chatMessages">
-          <div class="system-message">Welcome to Capsule Brain Supreme AGI.</div>
+  </div>
+
+  <!-- Notification Container -->
+  <div id="notificationContainer" class="notification-container"></div>
+
+  <!-- Main App -->
+  <div id="app" class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-container">
+          <div class="logo">🧠</div>
+          <div class="logo-text">
+            <h1>Capsule Brain</h1>
+            <span class="version">v1.0.1</span>
+          </div>
         </div>
-        <div class="chat-input-area">
-          <label for="fileUpload" class="file-upload-label">📎</label>
-          <input type="file" id="fileUpload" accept=".pdf,.txt" />
-          <span id="fileName" class="file-name"></span>
-          <textarea id="chatInput" placeholder="Send a message to the AGI..." rows="1"></textarea>
-          <button id="sendButton" class="send-button">Send</button>
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <span class="theme-icon">🌙</span>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-panel="chat">
+          <span class="nav-icon">💬</span>
+          <span class="nav-text">Chat</span>
+        </button>
+        <button class="nav-item" data-panel="system">
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">System</span>
+        </button>
+        <button class="nav-item" data-panel="thinking">
+          <span class="nav-icon">🧠</span>
+          <span class="nav-text">Thinking</span>
+        </button>
+        <button class="nav-item" data-panel="analytics">
+          <span class="nav-icon">📈</span>
+          <span class="nav-text">Analytics</span>
+        </button>
+        <button class="nav-item" data-panel="settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="connection-status" id="connectionStatus">
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span id="statusText">Connecting...</span>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="panel" id="systemPanel">
-      <div class="panel-header"><h2>System Health</h2></div>
-      <div class="hud-container" id="systemHud">
-        <div class="hud-card"><div class="hud-title">Φ</div><div class="hud-value phi" id="phiValue">-</div></div>
-        <div class="hud-card"><div class="hud-title">Glyphs</div><div class="hud-value glyphs" id="glyphsValue">-</div></div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Chat Panel -->
+      <div class="panel active" id="chatPanel">
+        <div class="panel-header">
+          <h2>AI Assistant</h2>
+          <div class="panel-actions">
+            <button id="clearChat" class="action-btn" title="Clear conversation">
+              <span>🗑️</span>
+            </button>
+            <button id="exportChat" class="action-btn" title="Export conversation">
+              <span>📤</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-container">
+          <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+              <div class="welcome-content">
+                <div class="welcome-icon">🤖</div>
+                <h3>Welcome to Capsule Brain Supreme AGI</h3>
+                <p>I'm your advanced AI assistant. How can I help you today?</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Thinking Indicator -->
+          <div class="thinking-indicator hidden" id="thinkingIndicator">
+            <div class="thinking-content">
+              <div class="thinking-icon">🧠</div>
+              <div class="thinking-text">AI is thinking...</div>
+              <div class="thinking-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-container">
+            <div class="input-wrapper">
+              <div class="file-upload-area">
+                <label for="fileUpload" class="file-upload-btn">
+                  <span class="upload-icon">📎</span>
+                  <span class="upload-text">Attach</span>
+                </label>
+                <input type="file" id="fileUpload" accept=".pdf,.txt,.md,.doc,.docx" multiple />
+                <div id="fileList" class="file-list"></div>
+              </div>
+              
+              <div class="input-group">
+                <textarea 
+                  id="chatInput" 
+                  placeholder="Type your message here..." 
+                  rows="1"
+                  maxlength="4000"
+                ></textarea>
+                <button id="sendButton" class="send-button" disabled>
+                  <span class="send-icon">🚀</span>
+                  <span class="send-text">Send</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="input-footer">
+              <div class="char-counter">
+                <span id="charCount">0</span>/4000
+              </div>
+              <div class="input-hints">
+                Press <kbd>Enter</kbd> to send, <kbd>Shift+Enter</kbd> for new line
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </main>
+
+      <!-- System Panel -->
+      <div class="panel" id="systemPanel">
+        <div class="panel-header">
+          <h2>System Health</h2>
+          <div class="panel-actions">
+            <button id="refreshSystem" class="action-btn" title="Refresh data">
+              <span>🔄</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="system-content">
+          <div class="metrics-grid">
+            <div class="metric-card primary">
+              <div class="metric-header">
+                <h3>Consciousness Level (Φ)</h3>
+                <div class="metric-trend" id="phiTrend"></div>
+              </div>
+              <div class="metric-value" id="phiValue">-</div>
+              <div class="metric-description">Integrated Information Theory</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <h3>Neural Glyphs</h3>
+                <div class="metric-status" id="glyphStatus"></div>
+              </div>
+              <div class="metric-value glyphs" id="glyphsValue">-</div>
+              <div class="metric-description">Cognitive State Indicators</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <h3>Memory Usage</h3>
+                <div class="metric-progress">
+                  <div class="progress-bar" id="memoryProgress"></div>
+                </div>
+              </div>
+              <div class="metric-value" id="memoryValue">-</div>
+              <div class="metric-description">Active Memory Entries</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <h3>Uptime</h3>
+                <div class="metric-icon">⏱️</div>
+              </div>
+              <div class="metric-value" id="uptimeValue">-</div>
+              <div class="metric-description">System Runtime</div>
+            </div>
+          </div>
+
+          <div class="system-details">
+            <div class="detail-section">
+              <h3>Knowledge Graph</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Nodes</span>
+                  <span class="detail-value" id="graphNodes">-</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Edges</span>
+                  <span class="detail-value" id="graphEdges">-</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h3>Alignment Principles</h3>
+              <div class="principles-list" id="principlesList"></div>
+            </div>
+
+            <div class="detail-section">
+              <h3>AI Overseer</h3>
+              <div class="overseer-controls">
+                <div class="overseer-status">
+                  <span class="status-label">Status:</span>
+                  <span id="overseerStatus" class="status-value">Unknown</span>
+                </div>
+                <div class="overseer-actions">
+                  <button id="enableOverseer" class="action-btn overseer-btn" title="Enable AI Overseer">
+                    <span>🎯</span>
+                    <span>Enable</span>
+                  </button>
+                  <button id="disableOverseer" class="action-btn overseer-btn" title="Disable AI Overseer">
+                    <span>⏸️</span>
+                    <span>Disable</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thinking Panel -->
+      <div class="panel" id="thinkingPanel">
+        <div class="panel-header">
+          <h2>AI Thinking Process</h2>
+          <div class="panel-actions">
+            <button id="refreshThinking" class="action-btn" title="Refresh thinking data">
+              <span>🔄</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="thinking-content">
+          <!-- Current Query -->
+          <div class="thinking-section">
+            <h3>Current Query</h3>
+            <div class="query-display" id="currentQuery">
+              <div class="query-text">No active query</div>
+              <div class="query-timestamp" id="queryTimestamp"></div>
+            </div>
+          </div>
+
+          <!-- Retrieved Knowledge -->
+          <div class="thinking-section">
+            <h3>Retrieved Knowledge</h3>
+            <div class="knowledge-list" id="retrievedKnowledge">
+              <div class="knowledge-item">No knowledge retrieved</div>
+            </div>
+          </div>
+
+          <!-- Current Plan -->
+          <div class="thinking-section">
+            <h3>Current Plan</h3>
+            <div class="plan-display" id="currentPlan">
+              <div class="plan-item">No active plan</div>
+            </div>
+          </div>
+
+          <!-- Recent Memories -->
+          <div class="thinking-section">
+            <h3>Recent Memories</h3>
+            <div class="memories-list" id="recentMemories">
+              <div class="memory-item">No memories available</div>
+            </div>
+          </div>
+
+          <!-- Neural Activity -->
+          <div class="thinking-section">
+            <h3>Neural Activity</h3>
+            <div class="neural-activity">
+              <div class="activity-item">
+                <span class="activity-label">Phi Level:</span>
+                <span class="activity-value" id="neuralPhi">-</span>
+              </div>
+              <div class="activity-item">
+                <span class="activity-label">Glyphs:</span>
+                <span class="activity-value" id="neuralGlyphs">-</span>
+              </div>
+              <div class="activity-item">
+                <span class="activity-label">Graph Activity:</span>
+                <span class="activity-value" id="graphActivity">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Panel -->
+      <div class="panel" id="analyticsPanel">
+        <div class="panel-header">
+          <h2>Analytics Dashboard</h2>
+          <div class="panel-actions">
+            <select id="timeRange" class="time-selector" title="Select time range for analytics">
+              <option value="1h">Last Hour</option>
+              <option value="24h" selected>Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="analytics-content">
+          <div class="chart-container">
+            <canvas id="phiChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="tokenChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div class="panel" id="settingsPanel">
+        <div class="panel-header">
+          <h2>Settings</h2>
+        </div>
+
+        <div class="settings-content">
+          <div class="settings-section">
+            <h3>Appearance</h3>
+            <div class="setting-item">
+              <label for="themeSelect">Theme</label>
+              <select id="themeSelect">
+                <option value="auto">Auto</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="fontSize">Font Size</label>
+              <input type="range" id="fontSize" min="12" max="20" value="14">
+              <span class="setting-value" id="fontSizeValue">14px</span>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Chat</h3>
+            <div class="setting-item">
+              <label for="autoScroll">Auto-scroll to new messages</label>
+              <input type="checkbox" id="autoScroll" checked>
+            </div>
+            <div class="setting-item">
+              <label for="showTimestamps">Show timestamps</label>
+              <input type="checkbox" id="showTimestamps">
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>System</h3>
+            <div class="setting-item">
+              <label for="refreshInterval">Data refresh interval (seconds)</label>
+              <input type="number" id="refreshInterval" min="1" max="60" value="5">
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
   <script src="/static/app.js"></script>
 </body>
 </html>
