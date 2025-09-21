@@ -4,7 +4,7 @@ import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable, Awaitable
 
 from fastapi import (
     Body,
@@ -17,6 +17,7 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from capsule_brain.api.dependencies import (
@@ -72,6 +73,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Add cache control headers for static files
+@app.middleware("http")
+async def add_cache_control_header(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    response = await call_next(request)
+    if request.url.path.endswith(('.js', '.css')):
+        response.headers["Cache-Control"] = (
+            "no-cache, no-store, must-revalidate"
+        )
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 # Configure Prometheus metrics before app startup
 setup_metrics(app)
@@ -158,7 +174,10 @@ async def ask_with_document(
     try:
         # Read the uploaded file content
         file_content = await file.read()
-        log.info(f"Processing uploaded file: {file.filename} ({len(file_content)} bytes)")
+        log.info(
+            f"Processing uploaded file: {file.filename} "
+            f"({len(file_content)} bytes)"
+        )
         
         # Extract text content from the file
         extracted_text, file_meta = extract_bytes(
@@ -193,7 +212,9 @@ Document Content:
         ]
         
         # Generate LLM response
-        llm_response = await engine.belief_state_manager.generate_llm_response()
+        llm_response = await (
+            engine.belief_state_manager.generate_llm_response()
+        )
         
         if llm_response.get("text"):
             engine.add_memory("assistant", llm_response["text"])
@@ -228,17 +249,27 @@ Document Content:
                 "type": file_meta.get("type"),
                 "size": file_meta.get("bytes"),
                 "extracted_length": len(extracted_text),
-                "preview": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text
+                "preview": (
+                    extracted_text[:500] + "..."
+                    if len(extracted_text) > 500
+                    else extracted_text
+                )
             }
         }
         
     except Exception as e:
         log.error(f"Error processing uploaded file: {e}")
         # Fallback: just record the filename without content
-        engine.add_memory("user", f"{q_value}\n[Attached file: {file.filename} - processing failed: {str(e)}]")
+        engine.add_memory(
+            "user",
+            f"{q_value}\n[Attached file: {file.filename} "
+            f"- processing failed: {str(e)}]"
+        )
         engine.belief_state_manager.current_query = q_value
         
-        llm_response = await engine.belief_state_manager.generate_llm_response()
+        llm_response = await (
+            engine.belief_state_manager.generate_llm_response()
+        )
         if llm_response.get("text"):
             engine.add_memory("assistant", llm_response["text"])
             
@@ -284,17 +315,21 @@ async def add_edge(
 @app.post("/overseer/enable", dependencies=[Depends(require_admin_token)])
 async def enable_overseer(engine: EngineDep) -> dict[str, Any]:
     """Enable the AI overseer."""
+    log.info("Overseer enable request received")
     engine.enable_overseer()
     if not engine.overseer:
         await engine.start_overseer()
+    log.info("Overseer enabled successfully")
     return {"ok": True, "overseer_enabled": engine.overseer_enabled}
 
 
 @app.post("/overseer/disable", dependencies=[Depends(require_admin_token)])
 async def disable_overseer(engine: EngineDep) -> dict[str, Any]:
     """Disable the AI overseer."""
+    log.info("Overseer disable request received")
     engine.disable_overseer()
     await engine.stop_overseer()
+    log.info("Overseer disabled successfully")
     return {"ok": True, "overseer_enabled": engine.overseer_enabled}
 
 

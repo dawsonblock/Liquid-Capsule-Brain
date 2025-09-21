@@ -45,8 +45,8 @@ class BeliefStateManager:
 
         # Get recent conversation history for better context
         recent_memories = []
-        if hasattr(self.engine, 'memory') and hasattr(self.engine.memory, 'recent_memories'):
-            recent_memories = self.engine.memory.recent_memories[-6:]  # Last 6 exchanges
+        if hasattr(self.engine, 'memory') and isinstance(self.engine.memory, list):
+            recent_memories = self.engine.memory[-6:]  # Last 6 exchanges
         
         context_lines = [
             f"Query: {self.current_query}",

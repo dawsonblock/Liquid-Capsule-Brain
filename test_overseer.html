@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Overseer Test</title>
+</head>
+<body>
+    <h1>Overseer Test</h1>
+    <button onclick="testEnable()">Enable Overseer</button>
+    <button onclick="testDisable()">Disable Overseer</button>
+    <div id="result"></div>
+
+    <script>
+        async function testEnable() {
+            try {
+                console.log('Testing enable...');
+                const response = await fetch('http://localhost:8000/overseer/enable', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-token': 'cb_admin_bfd38aaa245bdfcc3a756221be8e36ee'
+                    }
+                });
+                
+                console.log('Enable response:', response.status, response.statusText);
+                const data = await response.json();
+                document.getElementById('result').innerHTML = 'Enable: ' + JSON.stringify(data);
+            } catch (error) {
+                console.error('Enable error:', error);
+                document.getElementById('result').innerHTML = 'Enable Error: ' + error.message;
+            }
+        }
+
+        async function testDisable() {
+            try {
+                console.log('Testing disable...');
+                const response = await fetch('http://localhost:8000/overseer/disable', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-token': 'cb_admin_bfd38aaa245bdfcc3a756221be8e36ee'
+                    }
+                });
+                
+                console.log('Disable response:', response.status, response.statusText);
+                const data = await response.json();
+                document.getElementById('result').innerHTML = 'Disable: ' + JSON.stringify(data);
+            } catch (error) {
+                console.error('Disable error:', error);
+                document.getElementById('result').innerHTML = 'Disable Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
