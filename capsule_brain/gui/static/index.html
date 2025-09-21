@@ -3,33 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Capsule Brain S-AGI :: Control Center</title>
-  <link rel="stylesheet" href="/static/styles.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/5.1.1/marked.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+  <title>Capsule Brain Supreme AGI</title>
+  <meta name="description" content="Advanced AI system with consciousness metrics and real-time monitoring" />
+  <meta name="theme-color" content="#0ea5e9" />
+  
+  <!-- Preload critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/styles.css?v=3" />
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
 </head>
 <body>
   <!-- Loading Screen -->
   <div id="loadingScreen" class="loading-screen">
     <div class="loading-content">
       <div class="loading-logo">🧠</div>
-      <div class="loading-text">Initializing Capsule Brain...</div>
-      <div class="loading-progress">
-        <div class="progress-bar"></div>
-      </div>
+      <div class="loading-text">Capsule Brain Supreme AGI</div>
+      <div class="loading-spinner"></div>
     </div>
   </div>
 
-  <!-- Notification Container -->
-  <div id="notificationContainer" class="notification-container"></div>
-
   <!-- Main App -->
-  <div id="app" class="app-container">
+  <div id="app" class="app-container" style="display: none;">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="logo-container">
           <div class="logo">🧠</div>
@@ -74,7 +76,7 @@
       <div class="sidebar-footer">
         <div class="connection-status" id="connectionStatus">
           <div class="status-indicator">
-            <span class="status-dot"></span>
+            <span class="status-dot" id="statusDot"></span>
             <span id="statusText">Connecting...</span>
           </div>
         </div>
@@ -84,305 +86,264 @@
     <!-- Main Content -->
     <main class="main-content">
       <!-- Chat Panel -->
-      <div class="panel active" id="chatPanel">
-        <div class="panel-header">
-          <h2>AI Assistant</h2>
-          <div class="panel-actions">
-            <button id="clearChat" class="action-btn" title="Clear conversation">
-              <span>🗑️</span>
-            </button>
-            <button id="exportChat" class="action-btn" title="Export conversation">
-              <span>📤</span>
-            </button>
+      <div class="panel chat-panel active" id="chatPanel">
+        <div class="chat-messages" id="chatMessages">
+          <div class="message assistant">
+            <div class="message-avatar">AI</div>
+            <div class="message-content">
+              <p class="message-text">Hello! I'm Capsule Brain Supreme AGI. How can I assist you today?</p>
+              <div class="message-time" id="welcomeTime"></div>
+            </div>
           </div>
         </div>
-
-        <div class="chat-container">
-          <div class="chat-messages" id="chatMessages">
-            <div class="welcome-message">
-              <div class="welcome-content">
-                <div class="welcome-icon">🤖</div>
-                <h3>Welcome to Capsule Brain Supreme AGI</h3>
-                <p>I'm your advanced AI assistant. How can I help you today?</p>
-              </div>
-            </div>
+        
+        <div class="chat-input-container">
+          <div class="file-upload-area" id="fileUploadArea">
+            <span class="file-upload-icon">📎</span>
+            <span class="file-upload-text">Drop files here or click to upload</span>
+            <input type="file" id="fileInput" multiple accept=".pdf,.txt,.zip" style="display: none;" />
           </div>
-
-          <!-- Thinking Indicator -->
-          <div class="thinking-indicator hidden" id="thinkingIndicator">
-            <div class="thinking-content">
-              <div class="thinking-icon">🧠</div>
-              <div class="thinking-text">AI is thinking...</div>
-              <div class="thinking-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          </div>
-
-          <div class="chat-input-container">
-            <div class="input-wrapper">
-              <div class="file-upload-area">
-                <label for="fileUpload" class="file-upload-btn">
-                  <span class="upload-icon">📎</span>
-                  <span class="upload-text">Attach</span>
-                </label>
-                <input type="file" id="fileUpload" accept=".pdf,.txt,.md,.doc,.docx" multiple />
-                <div id="fileList" class="file-list"></div>
-              </div>
-              
-              <div class="input-group">
-                <textarea 
-                  id="chatInput" 
-                  placeholder="Type your message here..." 
-                  rows="1"
-                  maxlength="4000"
-                ></textarea>
-                <button id="sendButton" class="send-button gradient-button" disabled>
-                  <span class="send-icon">🚀</span>
-                  <span class="send-text">Send</span>
-                </button>
-              </div>
-            </div>
-            
-            <div class="input-footer">
-              <div class="char-counter">
-                <span id="charCount">0</span>/4000
-              </div>
-              <div class="input-hints">
-                Press <kbd>Enter</kbd> to send, <kbd>Shift+Enter</kbd> for new line
-              </div>
-            </div>
+          
+          <div class="file-list" id="fileList" style="display: none;"></div>
+          
+          <div class="chat-input-wrapper">
+            <textarea 
+              id="messageInput" 
+              placeholder="Ask me anything..." 
+              rows="1"
+              maxlength="4000"
+            ></textarea>
+            <button id="sendButton" class="btn btn-primary btn-icon" title="Send message">
+              <span>📤</span>
+            </button>
           </div>
         </div>
       </div>
 
       <!-- System Panel -->
-      <div class="panel" id="systemPanel">
-        <div class="panel-header">
-          <h2>System Health</h2>
-          <div class="panel-actions">
-            <button id="refreshSystem" class="action-btn" title="Refresh data">
-              <span>🔄</span>
-            </button>
+      <div class="panel system-panel" id="systemPanel">
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-title">Uptime</div>
+            <div class="metric-icon">⏱️</div>
+          </div>
+          <div class="metric-value" id="uptimeValue">0s</div>
+          <div class="metric-description">System running time</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-title">Memory</div>
+            <div class="metric-icon">🧠</div>
+          </div>
+          <div class="metric-value" id="memoryValue">0</div>
+          <div class="metric-description">Active memory items</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-title">Consciousness</div>
+            <div class="metric-icon">✨</div>
+          </div>
+          <div class="metric-value" id="phiValue">0.00</div>
+          <div class="metric-description">Integrated Information Theory (Φ)</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-title">Knowledge Graph</div>
+            <div class="metric-icon">🕸️</div>
+          </div>
+          <div class="metric-value" id="graphNodes">0</div>
+          <div class="metric-description">Connected knowledge nodes</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-title">Overseer</div>
+            <div class="metric-icon">👁️</div>
+          </div>
+          <div class="metric-value" id="overseerStatus">Disabled</div>
+          <div class="metric-description">AI supervision status</div>
+          <div class="metric-actions" style="margin-top: 1rem;">
+            <button id="enableOverseer" class="btn btn-primary btn-sm">Enable</button>
+            <button id="disableOverseer" class="btn btn-secondary btn-sm" style="display: none;">Disable</button>
           </div>
         </div>
 
-        <div class="system-content">
-          <div class="metrics-grid">
-            <div class="metric-card primary glass-card animated-card">
-              <div class="metric-header">
-                <h3>Consciousness Level (Φ)</h3>
-                <div class="metric-trend" id="phiTrend"></div>
-              </div>
-              <div class="metric-value glow-effect" id="phiValue">-</div>
-              <div class="metric-description">Integrated Information Theory</div>
-            </div>
-
-            <div class="metric-card glass-card animated-card">
-              <div class="metric-header">
-                <h3>Neural Glyphs</h3>
-                <div class="metric-status" id="glyphStatus"></div>
-              </div>
-              <div class="metric-value glyphs pulse-animation" id="glyphsValue">-</div>
-              <div class="metric-description">Cognitive State Indicators</div>
-            </div>
-
-            <div class="metric-card glass-card animated-card">
-              <div class="metric-header">
-                <h3>Memory Usage</h3>
-                <div class="metric-progress">
-                  <div class="progress-bar" id="memoryProgress"></div>
-                </div>
-              </div>
-              <div class="metric-value" id="memoryValue">-</div>
-              <div class="metric-description">Active Memory Entries</div>
-            </div>
-
-            <div class="metric-card glass-card animated-card">
-              <div class="metric-header">
-                <h3>Uptime</h3>
-                <div class="metric-icon">⏱️</div>
-              </div>
-              <div class="metric-value" id="uptimeValue">-</div>
-              <div class="metric-description">System Runtime</div>
-            </div>
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-title">Oracle Control</div>
+            <div class="metric-icon">🔮</div>
           </div>
-
-          <div class="system-details">
-            <div class="detail-section">
-              <h3>Knowledge Graph</h3>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Nodes</span>
-                  <span class="detail-value" id="graphNodes">-</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Edges</span>
-                  <span class="detail-value" id="graphEdges">-</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="detail-section">
-              <h3>Alignment Principles</h3>
-              <div class="principles-list" id="principlesList"></div>
-            </div>
-
-            <div class="detail-section">
-              <h3>AI Overseer</h3>
-              <div class="overseer-controls">
-                <div class="overseer-status">
-                  <span class="status-label">Status:</span>
-                  <span id="overseerStatus" class="status-value">Unknown</span>
-                </div>
-                <div class="overseer-actions">
-                  <button id="enableOverseer" class="action-btn overseer-btn gradient-button" title="Enable AI Overseer">
-                    <span>🎯</span>
-                    <span>Enable</span>
-                  </button>
-                  <button id="disableOverseer" class="action-btn overseer-btn gradient-button" title="Disable AI Overseer">
-                    <span>⏸️</span>
-                    <span>Disable</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div class="metric-value" id="oracleStatus">Standby</div>
+          <div class="metric-description">System control interface</div>
+          <div class="metric-actions" style="margin-top: 1rem;">
+            <button id="oracleOn" class="btn btn-primary btn-sm">Activate</button>
+            <button id="oracleOff" class="btn btn-secondary btn-sm" style="display: none;">Deactivate</button>
           </div>
         </div>
       </div>
 
       <!-- Thinking Panel -->
-      <div class="panel" id="thinkingPanel">
-        <div class="panel-header">
-          <h2>AI Thinking Process</h2>
-          <div class="panel-actions">
-            <button id="refreshThinking" class="action-btn" title="Refresh thinking data">
-              <span>🔄</span>
-            </button>
+      <div class="panel thinking-panel" id="thinkingPanel">
+        <div class="thinking-section">
+          <div class="thinking-header">
+            <span class="thinking-icon">🧠</span>
+            <h3 class="thinking-title">Current Thinking Process</h3>
+          </div>
+          <div class="thinking-content" id="thinkingContent">
+            <div class="thinking-indicator" id="thinkingIndicator" style="display: none;">
+              <span>AI is thinking</span>
+              <div class="thinking-dots">
+                <div class="thinking-dot"></div>
+                <div class="thinking-dot"></div>
+                <div class="thinking-dot"></div>
+              </div>
+            </div>
+            <div id="thinkingDetails">
+              <p>No active thinking process detected.</p>
+            </div>
           </div>
         </div>
 
-        <div class="thinking-content">
-          <!-- Current Query -->
-          <div class="thinking-section">
-            <h3>Current Query</h3>
-            <div class="query-display" id="currentQuery">
-              <div class="query-text">No active query</div>
-              <div class="query-timestamp" id="queryTimestamp"></div>
-            </div>
+        <div class="thinking-section">
+          <div class="thinking-header">
+            <span class="thinking-icon">💭</span>
+            <h3 class="thinking-title">Recent Memories</h3>
           </div>
-
-          <!-- Retrieved Knowledge -->
-          <div class="thinking-section">
-            <h3>Retrieved Knowledge</h3>
-            <div class="knowledge-list" id="retrievedKnowledge">
-              <div class="knowledge-item">No knowledge retrieved</div>
-            </div>
+          <div class="thinking-content" id="memoriesContent">
+            <p>No memories available.</p>
           </div>
+        </div>
 
-          <!-- Current Plan -->
-          <div class="thinking-section">
-            <h3>Current Plan</h3>
-            <div class="plan-display" id="currentPlan">
-              <div class="plan-item">No active plan</div>
-            </div>
+        <div class="thinking-section">
+          <div class="thinking-header">
+            <span class="thinking-icon">🔗</span>
+            <h3 class="thinking-title">Knowledge Connections</h3>
           </div>
-
-          <!-- Recent Memories -->
-          <div class="thinking-section">
-            <h3>Recent Memories</h3>
-            <div class="memories-list" id="recentMemories">
-              <div class="memory-item">No memories available</div>
-            </div>
-          </div>
-
-          <!-- Neural Activity -->
-          <div class="thinking-section">
-            <h3>Neural Activity</h3>
-            <div class="neural-activity">
-              <div class="activity-item">
-                <span class="activity-label">Phi Level:</span>
-                <span class="activity-value" id="neuralPhi">-</span>
-              </div>
-              <div class="activity-item">
-                <span class="activity-label">Glyphs:</span>
-                <span class="activity-value" id="neuralGlyphs">-</span>
-              </div>
-              <div class="activity-item">
-                <span class="activity-label">Graph Activity:</span>
-                <span class="activity-value" id="graphActivity">-</span>
-              </div>
-            </div>
+          <div class="thinking-content" id="knowledgeContent">
+            <p>No knowledge connections active.</p>
           </div>
         </div>
       </div>
 
       <!-- Analytics Panel -->
-      <div class="panel" id="analyticsPanel">
-        <div class="panel-header">
-          <h2>Analytics Dashboard</h2>
-          <div class="panel-actions">
-            <select id="timeRange" class="time-selector" title="Select time range for analytics">
-              <option value="1h">Last Hour</option>
-              <option value="24h" selected>Last 24 Hours</option>
-              <option value="7d">Last 7 Days</option>
-            </select>
+      <div class="panel analytics-panel" id="analyticsPanel">
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3 class="chart-title">Consciousness Metrics Over Time</h3>
+            <div class="chart-actions">
+              <button class="btn btn-secondary btn-sm">Refresh</button>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="phiChart"></canvas>
           </div>
         </div>
 
-        <div class="analytics-content">
-          <div class="chart-container">
-            <canvas id="phiChart"></canvas>
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3 class="chart-title">Memory Usage</h3>
+            <div class="chart-actions">
+              <button class="btn btn-secondary btn-sm">Export</button>
+            </div>
           </div>
-          <div class="chart-container">
-            <canvas id="tokenChart"></canvas>
+          <div class="chart-content">
+            <canvas id="memoryChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3 class="chart-title">System Performance</h3>
+            <div class="chart-actions">
+              <button class="btn btn-secondary btn-sm">Details</button>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="performanceChart"></canvas>
           </div>
         </div>
       </div>
 
       <!-- Settings Panel -->
-      <div class="panel" id="settingsPanel">
-        <div class="panel-header">
-          <h2>Settings</h2>
+      <div class="panel settings-panel" id="settingsPanel">
+        <div class="settings-section">
+          <div class="settings-header">
+            <span class="settings-icon">🎨</span>
+            <h3 class="settings-title">Appearance</h3>
+          </div>
+          <div class="settings-content">
+            <div class="setting-item">
+              <div class="setting-label">Dark Mode</div>
+              <div class="setting-control">
+                <div class="toggle" id="darkModeToggle"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">Font Size</div>
+              <div class="setting-control">
+                <input type="range" class="slider" id="fontSizeSlider" min="12" max="18" value="16" />
+                <span id="fontSizeValue">16px</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">Animation Speed</div>
+              <div class="setting-control">
+                <input type="range" class="slider" id="animationSlider" min="0.5" max="2" step="0.1" value="1" />
+                <span id="animationValue">1x</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="settings-content">
-          <div class="settings-section">
-            <h3>Appearance</h3>
+        <div class="settings-section">
+          <div class="settings-header">
+            <span class="settings-icon">🔔</span>
+            <h3 class="settings-title">Notifications</h3>
+          </div>
+          <div class="settings-content">
             <div class="setting-item">
-              <label for="themeSelect">Theme</label>
-              <select id="themeSelect">
-                <option value="auto">Auto</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
+              <div class="setting-label">System Alerts</div>
+              <div class="setting-control">
+                <div class="toggle active" id="systemAlertsToggle"></div>
+              </div>
             </div>
             <div class="setting-item">
-              <label for="fontSize">Font Size</label>
-              <input type="range" id="fontSize" min="12" max="20" value="14">
-              <span class="setting-value" id="fontSizeValue">14px</span>
+              <div class="setting-label">Memory Warnings</div>
+              <div class="setting-control">
+                <div class="toggle active" id="memoryWarningsToggle"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">Overseer Updates</div>
+              <div class="setting-control">
+                <div class="toggle active" id="overseerUpdatesToggle"></div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div class="settings-section">
-            <h3>Chat</h3>
-            <div class="setting-item">
-              <label for="autoScroll">Auto-scroll to new messages</label>
-              <input type="checkbox" id="autoScroll" checked>
-            </div>
-            <div class="setting-item">
-              <label for="showTimestamps">Show timestamps</label>
-              <input type="checkbox" id="showTimestamps">
-            </div>
+        <div class="settings-section">
+          <div class="settings-header">
+            <span class="settings-icon">⚡</span>
+            <h3 class="settings-title">Performance</h3>
           </div>
-
-          <div class="settings-section">
-            <h3>System</h3>
+          <div class="settings-content">
             <div class="setting-item">
-              <label for="refreshInterval">Data refresh interval (seconds)</label>
-              <input type="number" id="refreshInterval" min="1" max="60" value="5">
+              <div class="setting-label">Auto-refresh Interval</div>
+              <div class="setting-control">
+                <input type="range" class="slider" id="refreshSlider" min="1" max="30" value="5" />
+                <span id="refreshValue">5s</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">Memory Limit</div>
+              <div class="setting-control">
+                <input type="range" class="slider" id="memoryLimitSlider" min="1000" max="10000" step="1000" value="5000" />
+                <span id="memoryLimitValue">5000</span>
+              </div>
             </div>
           </div>
         </div>
@@ -390,6 +351,8 @@
     </main>
   </div>
 
-  <script src="/static/app.js?v=2"></script>
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/static/app.js?v=3"></script>
 </body>
 </html>

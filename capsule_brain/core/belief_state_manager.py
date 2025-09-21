@@ -35,7 +35,7 @@ class BeliefStateManager:
         self.current_plan = current_plan
         self.self_awareness_metrics = self_awareness_metrics
         self.last_update = time.time()
-        
+
         # Broadcast state update to GUI
         if hasattr(self.engine, 'broadcast_belief_state_update'):
             self.engine.broadcast_belief_state_update()
@@ -45,16 +45,17 @@ class BeliefStateManager:
 
         # Get recent conversation history for better context
         recent_memories = []
-        if hasattr(self.engine, 'memory') and isinstance(self.engine.memory, list):
+        if (hasattr(self.engine, 'memory') and
+                isinstance(self.engine.memory, list)):
             recent_memories = self.engine.memory[-6:]  # Last 6 exchanges
-        
+
         context_lines = [
             f"Query: {self.current_query}",
             f"Retrieved: {' | '.join(self.retrieved_knowledge[:5])}",
             f"Plan keys: {list(self.current_plan.keys())}",
             f"Self-metrics: phi={self.self_awareness_metrics.get('phi', 0.0):.2f}",
         ]
-        
+
         # Add recent conversation context
         if recent_memories:
             context_lines.append("\nRecent conversation:")
@@ -62,7 +63,7 @@ class BeliefStateManager:
                 role = memory.get('role', 'unknown')
                 content = memory.get('content', '')[:200]  # Limit length
                 context_lines.append(f"{role}: {content}")
-        
+
         system_prompt = (
             "You are Capsule Brain Supreme AGI. Maintain conversation context and memory. "
             "Be succinct, cite tools you would call, and propose next steps. "

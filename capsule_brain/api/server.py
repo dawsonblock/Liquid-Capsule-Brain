@@ -2,9 +2,9 @@ import asyncio
 import logging
 import os
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import Annotated, Any, Callable, Awaitable
+from typing import Annotated, Any
 
 from fastapi import (
     Body,
@@ -28,24 +28,26 @@ from capsule_brain.api.dependencies import (
 )
 from capsule_brain.core.capsule_engine import CapsuleEngine
 from capsule_brain.gui.gui import AdvancedGUI
+from capsule_brain.ingestion.extractor import extract_bytes
 from capsule_brain.observability.metrics import (
     record_llm_tokens,
     setup_metrics,
 )
 from capsule_brain.security.admin import require_admin_token
-from capsule_brain.ingestion.extractor import extract_bytes
 
 log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def app_lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def app_lifespan(fastapi_app: FastAPI) -> AsyncIterator[None]:
     capsule_engine = CapsuleEngine()
-    attach_engine(app, capsule_engine)
-    await capsule_engine.start_background_tasks(app)
-    gui = AdvancedGUI(capsule_engine, app)
-    app.state.gui = gui
-    broadcaster_task = asyncio.create_task(app.state.gui.run_broadcasters())
+    attach_engine(fastapi_app, capsule_engine)
+    await capsule_engine.start_background_tasks(fastapi_app)
+    gui = AdvancedGUI(capsule_engine, fastapi_app)
+    fastapi_app.state.gui = gui
+    broadcaster_task = asyncio.create_task(
+        fastapi_app.state.gui.run_broadcasters()
+    )
     log.info("Engine started.")
     try:
         yield
@@ -55,7 +57,7 @@ async def app_lifespan(app: FastAPI) -> AsyncIterator[None]:
             await broadcaster_task
         except asyncio.CancelledError:
             pass
-        attached = detach_engine(app)
+        attached = detach_engine(fastapi_app)
         if attached:
             await attached.shutdown()
 
@@ -149,7 +151,7 @@ async def ask(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
             )
-    except Exception:  # defensive metrics guard
+    except (ValueError, TypeError, KeyError):  # defensive metrics guard
         pass
 
     context, system_prompt = (
@@ -170,25 +172,26 @@ async def ask_with_document(
     q: str = Form("Document question"),
 ) -> dict[str, Any]:
     q_value = q or "Document question"
-    
+
     try:
         # Read the uploaded file content
         file_content = await file.read()
         log.info(
-            f"Processing uploaded file: {file.filename} "
-            f"({len(file_content)} bytes)"
+            "Processing uploaded file: %s (%d bytes)",
+            file.filename,
+            len(file_content)
         )
-        
+
         # Extract text content from the file
         extracted_text, file_meta = extract_bytes(
             file.filename or "unknown",
             file.content_type,
             file_content
         )
-        
-        log.info(f"Extracted text length: {len(extracted_text)} characters")
-        log.info(f"File metadata: {file_meta}")
-        
+
+        log.info("Extracted text length: %d characters", len(extracted_text))
+        log.info("File metadata: %s", file_meta)
+
         # Create a comprehensive query with the document content
         document_query = f"""
 Question: {q_value}
@@ -200,25 +203,25 @@ File Size: {file_meta.get('bytes', 0)} bytes
 Document Content:
 {extracted_text[:8000]}  # Limit to first 8000 chars to avoid token limits
 """
-        
+
         # Add to memory with extracted content
         engine.add_memory("user", document_query)
         engine.belief_state_manager.current_query = q_value
-        
+
         # Update belief state with document context
         engine.belief_state_manager.retrieved_knowledge = [
             f"Document: {file.filename} ({file_meta.get('type', 'unknown')})",
             f"Content preview: {extracted_text[:200]}..."
         ]
-        
+
         # Generate LLM response
         llm_response = await (
             engine.belief_state_manager.generate_llm_response()
         )
-        
+
         if llm_response.get("text"):
             engine.add_memory("assistant", llm_response["text"])
-            
+
         # Record DeepSeek token usage metrics if present
         usage = llm_response.get("usage") or {}
         try:
@@ -232,13 +235,13 @@ Document Content:
                     prompt_tokens=prompt_tokens,
                     completion_tokens=completion_tokens,
                 )
-        except Exception:
+        except (ValueError, TypeError, KeyError):
             pass
-            
+
         context, system_prompt = (
             engine.belief_state_manager.synthesize_context_for_llm()
         )
-        
+
         return {
             "ack": True,
             "context": context,
@@ -256,9 +259,9 @@ Document Content:
                 )
             }
         }
-        
-    except Exception as e:
-        log.error(f"Error processing uploaded file: {e}")
+
+    except (OSError, ValueError, TypeError, KeyError) as e:
+        log.error("Error processing uploaded file: %s", e)
         # Fallback: just record the filename without content
         engine.add_memory(
             "user",
@@ -266,13 +269,13 @@ Document Content:
             f"- processing failed: {str(e)}]"
         )
         engine.belief_state_manager.current_query = q_value
-        
+
         llm_response = await (
             engine.belief_state_manager.generate_llm_response()
         )
         if llm_response.get("text"):
             engine.add_memory("assistant", llm_response["text"])
-            
+
         return {
             "ack": True,
             "error": f"File processing failed: {str(e)}",
@@ -353,7 +356,7 @@ async def oracle_control(
 ) -> dict[str, Any]:
     """Oracle control endpoint for external system integration."""
     action = request.action.lower()
-    
+
     if action == "on":
         # Enable all systems
         engine.enable_overseer()
@@ -372,7 +375,7 @@ async def oracle_control(
         await engine.stop_overseer()
         return {
             "ok": True,
-            "action": "off", 
+            "action": "off",
             "message": "Oracle disabled - systems in standby",
             "overseer_enabled": engine.overseer_enabled,
             "timestamp": time.time()
