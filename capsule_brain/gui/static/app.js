@@ -207,8 +207,8 @@ class CapsuleBrainApp {
   }
 
   setupChatListeners() {
-    const chatInput = document.getElementById('chatInput');
-    const sendButton = document.getElementById('sendButton');
+  const chatInput = document.getElementById('chatInput');
+  const sendButton = document.getElementById('sendButton');
     const clearChat = document.getElementById('clearChat');
     const exportChat = document.getElementById('exportChat');
 
@@ -651,7 +651,7 @@ class CapsuleBrainApp {
   async loadThinkingData() {
     try {
       const response = await fetch('/state/summary');
-      const data = await response.json();
+        const data = await response.json();
       this.updateThinkingData(data);
     } catch (error) {
       console.error('Error loading thinking data:', error);
@@ -846,18 +846,24 @@ class CapsuleBrainApp {
 
   async enableOverseer() {
     try {
+      console.log('Attempting to enable overseer...');
       const response = await fetch('/overseer/enable', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-admin-token': 'cb_admin_bfd38aaa245bdfcc3a756221be8e36ee'
         }
       });
+      
+      console.log('Overseer enable response:', response.status, response.statusText);
       
       if (response.ok) {
         this.showNotification('AI Overseer enabled', 'success');
         this.loadSystemData(); // Refresh to get updated status
       } else {
-        this.showNotification('Failed to enable overseer', 'error');
+        const errorData = await response.json();
+        console.error('Overseer enable error:', errorData);
+        this.showNotification(`Error enabling overseer: ${errorData.detail || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Error enabling overseer:', error);
@@ -867,18 +873,24 @@ class CapsuleBrainApp {
 
   async disableOverseer() {
     try {
+      console.log('Attempting to disable overseer...');
       const response = await fetch('/overseer/disable', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-admin-token': 'cb_admin_bfd38aaa245bdfcc3a756221be8e36ee'
         }
       });
+      
+      console.log('Overseer disable response:', response.status, response.statusText);
       
       if (response.ok) {
         this.showNotification('AI Overseer disabled', 'success');
         this.loadSystemData(); // Refresh to get updated status
       } else {
-        this.showNotification('Failed to disable overseer', 'error');
+        const errorData = await response.json();
+        console.error('Overseer disable error:', errorData);
+        this.showNotification(`Error disabling overseer: ${errorData.detail || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Error disabling overseer:', error);

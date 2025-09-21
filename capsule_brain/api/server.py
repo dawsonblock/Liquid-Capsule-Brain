@@ -83,7 +83,7 @@ class AskRequest(BaseModel):
     q: str
 
 
-@app.get("/healthz", dependencies=[Depends(require_admin_token)])
+@app.get("/healthz")
 async def healthz() -> dict[str, Any]:
     return {"ok": True}
 

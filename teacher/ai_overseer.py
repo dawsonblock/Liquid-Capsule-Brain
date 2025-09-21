@@ -44,7 +44,27 @@ class AIOverseer:
             "How do principles from game theory apply to cybersecurity and adversarial AI?",
             "What parallels exist between musical composition and algorithmic design?",
             "How can principles from linguistics improve natural language processing systems?",
-            "What insights from physics can enhance our understanding of information theory?"
+            "What insights from physics can enhance our understanding of information theory?",
+            "How do principles from neuroscience inform artificial neural network design?",
+            "What can we learn from swarm intelligence for distributed AI systems?",
+            "How do principles from chaos theory apply to system resilience and fault tolerance?",
+            "What insights from sociology can improve human-AI interaction design?",
+            "How can principles from thermodynamics optimize energy consumption in computing?",
+            "What parallels exist between immune systems and cybersecurity defense mechanisms?",
+            "How do principles from fluid dynamics apply to data flow optimization?",
+            "What can we learn from ant colony optimization for distributed algorithms?",
+            "How do principles from molecular biology inform self-organizing systems?",
+            "What insights from astronomy can improve large-scale data processing systems?",
+            "How can principles from geology inform data persistence and storage strategies?",
+            "What parallels exist between weather prediction and machine learning forecasting?",
+            "How do principles from chemistry inform chemical reaction-inspired algorithms?",
+            "What can we learn from DNA replication for data replication strategies?",
+            "How do principles from optics inform information transmission and processing?",
+            "What insights from materials science can improve hardware-software co-design?",
+            "How can principles from genetics inform evolutionary algorithms and optimization?",
+            "What parallels exist between ecosystem dynamics and distributed system behavior?",
+            "How do principles from acoustics apply to signal processing and communication?",
+            "What can we learn from plant growth patterns for adaptive system design?"
         ]
 
     @staticmethod
@@ -74,9 +94,9 @@ class AIOverseer:
                     if question.lower() in content.lower():
                         recent_questions.add(question)
         
-        # Also check our internal question history (last 10 minutes)
+        # Also check our internal question history (last 5 minutes)
         for question, timestamp in self.asked_questions:
-            if current_time - timestamp < 600:  # 10 minutes
+            if current_time - timestamp < 300:  # 5 minutes
                 recent_questions.add(question)
         
         # Find a question that hasn't been asked recently

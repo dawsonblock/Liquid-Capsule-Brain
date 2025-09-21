@@ -24,16 +24,23 @@ def _safe_decode(data: bytes) -> str:
 
 def _extract_text_from_pdf_bytes(data: bytes) -> str:
     buf = io.BytesIO(data)
-    reader = PdfReader(buf)
-    parts: list[str] = []
-    for page in reader.pages:
-        try:
-            txt = page.extract_text() or ""
-        except Exception:
-            txt = ""
-        if txt:
-            parts.append(txt)
-    return "\n\n".join(parts)
+    try:
+        reader = PdfReader(buf)
+        parts: list[str] = []
+        for i, page in enumerate(reader.pages):
+            try:
+                txt = page.extract_text() or ""
+                if txt.strip():
+                    # Add page number for better organization
+                    parts.append(f"--- Page {i+1} ---\n{txt}")
+            except Exception as e:
+                # Log but continue with other pages
+                print(f"Warning: Could not extract text from page {i+1}: {e}")
+                continue
+        return "\n\n".join(parts)
+    except Exception as e:
+        print(f"Warning: PDF extraction failed: {e}")
+        return f"[PDF extraction failed: {e}]"
 
 
 def preview_text(text: str, max_chars: int = MAX_PREVIEW_CHARS) -> str:
@@ -94,17 +101,23 @@ def extract_bytes(filename: str, content_type: str | None, data: bytes) -> tuple
                 except Exception:
                     continue
                 if sub_ext in SUPPORTED_TXT_EXTS:
-                    parts.append(f"===== {name} =====\n" + _safe_decode(file_bytes))
-                    extracted_files.append(name)
+                    content = _safe_decode(file_bytes)
+                    if content.strip():
+                        parts.append(f"===== {name} (Text File) =====\n{content}")
+                        extracted_files.append(name)
                 elif sub_ext in SUPPORTED_PDF_EXTS:
-                    parts.append(f"===== {name} (PDF) =====\n" + _extract_text_from_pdf_bytes(file_bytes))
-                    extracted_files.append(name)
+                    pdf_content = _extract_text_from_pdf_bytes(file_bytes)
+                    if pdf_content.strip():
+                        parts.append(f"===== {name} (PDF Document) =====\n{pdf_content}")
+                        extracted_files.append(name)
                 else:
                     # Try generic text decode for unknown small files
-                    if len(file_bytes) <= MAX_BYTES and sub_ext not in {".png", ".jpg", ".jpeg", ".gif", ".webp"}:
+                    if len(file_bytes) <= MAX_BYTES and sub_ext not in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".avi", ".mov"}:
                         try:
-                            parts.append(f"===== {name} (raw) =====\n" + _safe_decode(file_bytes))
-                            extracted_files.append(name)
+                            content = _safe_decode(file_bytes)
+                            if content.strip():
+                                parts.append(f"===== {name} (Unknown Text Format) =====\n{content}")
+                                extracted_files.append(name)
                         except Exception:
                             pass
         meta["files_extracted"] = extracted_files
