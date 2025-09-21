@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
@@ -304,3 +305,45 @@ async def overseer_status(engine: EngineDep) -> dict[str, Any]:
         "overseer_enabled": engine.overseer_enabled,
         "overseer_running": engine.overseer is not None,
     }
+
+
+class OracleRequest(BaseModel):
+    action: str
+
+
+@app.post("/oracle", dependencies=[Depends(require_admin_token)])
+async def oracle_control(
+    request: OracleRequest,
+    engine: EngineDep
+) -> dict[str, Any]:
+    """Oracle control endpoint for external system integration."""
+    action = request.action.lower()
+    
+    if action == "on":
+        # Enable all systems
+        engine.enable_overseer()
+        if not engine.overseer:
+            await engine.start_overseer()
+        return {
+            "ok": True,
+            "action": "on",
+            "message": "Oracle enabled - all systems active",
+            "overseer_enabled": engine.overseer_enabled,
+            "timestamp": time.time()
+        }
+    elif action == "off":
+        # Disable all systems
+        engine.disable_overseer()
+        await engine.stop_overseer()
+        return {
+            "ok": True,
+            "action": "off", 
+            "message": "Oracle disabled - systems in standby",
+            "overseer_enabled": engine.overseer_enabled,
+            "timestamp": time.time()
+        }
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid action. Use 'on' or 'off'"
+        )

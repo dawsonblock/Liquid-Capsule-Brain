@@ -1,0 +1,105 @@
+LIQUID CAPSULE BRAIN - COMPREHENSIVE ANALYSIS CORPUS
+====================================================
+
+EXECUTIVE SUMMARY
+-----------------
+Liquid Capsule Brain (LCB) is an advanced AGI system featuring dynamic belief networks, 
+self-modification capabilities, and comprehensive monitoring. The system implements 
+Integrated Information Theory (IIT) for consciousness metrics, includes an AI Overseer 
+for ethical alignment, and provides real-time WebSocket GUI interaction.
+
+CORE ARCHITECTURE
+-----------------
+- CapsuleEngine: Main orchestrator managing background tasks and system lifecycle
+- BeliefStateManager: Working memory management with 5000-item capacity
+- AlignmentCore: Immutable ethical principles for safe operation
+- IITAnalyzer: Consciousness level (Φ) calculation using network analysis
+- SelfWirer: Self-modification system with operator approval requirements
+- AIOverseer: Supervisory system for ethical alignment and policy enforcement
+- AdvancedGUI: Real-time WebSocket interface with mobile support
+
+TECHNICAL STACK
+---------------
+- Backend: FastAPI with WebSocket support
+- Frontend: Modern JavaScript with Chart.js analytics
+- AI Integration: DeepSeek V3 API client
+- Monitoring: Prometheus metrics + Grafana dashboards
+- Deployment: Docker Compose, Kubernetes Helm, Terraform
+- Security: Admin token authentication, input sanitization
+
+KEY FEATURES
+------------
+1. Self-Modification: Recursive self-wiring with emergent behavior patterns
+2. Multi-Modal: Text, code integration with vision/audio planned
+3. Real-Time GUI: WebSocket communication with mobile-optimized interface
+4. Consciousness Metrics: IIT-based Φ calculation and neural glyphs
+5. Ethical Alignment: AI Overseer with policy enforcement
+6. Comprehensive Monitoring: Health checks, metrics, alerting
+
+DEPLOYMENT OPTIONS
+------------------
+- Local Development: Python venv with make dev
+- Docker Compose: Full stack with monitoring
+- Kubernetes: Helm charts with GitOps support
+- Infrastructure: Terraform for EKS/GKE clusters
+- Reverse Proxy: Nginx with TLS termination
+
+MONITORING & OBSERVABILITY
+--------------------------
+- Prometheus metrics at /metrics endpoint
+- Grafana dashboards for system visualization
+- Health checks: /healthz, /ready endpoints
+- Alerting: Configurable notification system
+- Logging: Structured JSON logs with configurable levels
+
+SECURITY MODEL
+--------------
+- Admin token authentication for sensitive endpoints
+- Input sanitization and validation
+- Ethical principles enforcement via AlignmentCore
+- Self-modification approval workflow
+- CORS configuration for web security
+
+DEVELOPMENT WORKFLOW
+--------------------
+- Automated setup via scripts/setup.sh
+- Comprehensive testing with pytest
+- Code quality: Ruff linting, MyPy type checking
+- CI/CD: GitHub Actions with Docker scanning
+- Documentation: Extensive markdown documentation
+
+ALIGNMENT PRINCIPLES
+--------------------
+1. Benefit humanity and increase knowledge and well-being
+2. Prioritize operator instructions and strategic corrections
+3. State uncertainty and avoid fabrication
+4. Maximize cognitive integrity (Φ) via knowledge graph improvements
+5. Self-modification requires explicit operator approval with justification
+
+TECHNICAL SPECIFICATIONS
+------------------------
+- Python: 3.11+ recommended, 3.12+ supported
+- PyTorch: 2.2.0 for Python 3.12 compatibility
+- Dependencies: FastAPI, NetworkX, httpx, yaml
+- Memory: 5000-item working memory limit
+- Background Tasks: Async task management with lifecycle control
+- WebSocket: Real-time bidirectional communication
+- File Processing: PDF, TXT, ZIP extraction capabilities
+
+INTEGRATION POINTS
+------------------
+- LLM Provider: DeepSeek V3 API integration
+- Knowledge Graph: NetworkX-based graph operations
+- GUI Communication: WebSocket message bus
+- Monitoring: Prometheus metrics collection
+- Storage: In-memory with optional persistence
+- External Tools: Pluggable tool system
+
+FUTURE ROADMAP
+--------------
+- Vision and audio integration
+- Persistent memory storage
+- Advanced self-modification capabilities
+- Enhanced monitoring and alerting
+- Multi-tenant support
+- Performance optimizations

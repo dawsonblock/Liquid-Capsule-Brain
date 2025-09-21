@@ -1,0 +1,109 @@
+{
+  "extraction_summary": {
+    "total_documents_analyzed": 6,
+    "extraction_timestamp": "2025-01-21T20:35:00Z",
+    "key_insights": [
+      "Advanced AGI system with self-modification capabilities",
+      "Multi-modal integration with real-time WebSocket GUI",
+      "Comprehensive monitoring and observability stack",
+      "Multiple deployment options (Docker, K8s, Terraform)",
+      "AI Overseer for ethical alignment and policy enforcement"
+    ]
+  },
+  "document_analyses": [
+    {
+      "file": "README.md",
+      "type": "project_overview",
+      "key_points": [
+        "Capsule Brain Supreme AGI v1.0.1",
+        "Dynamic belief networks with recursive self-modification",
+        "AI overseer for ethical alignment",
+        "FastAPI + WebSocket GUI for real-time interaction",
+        "Admin token authentication required",
+        "Prometheus metrics at /metrics endpoint"
+      ],
+      "technical_features": [
+        "Multi-modal integration (text, code, vision/audio planned)",
+        "Self-wiring cognition with emergent behavior",
+        "Docker Compose healthchecks",
+        "GitHub Actions CI/CD pipeline"
+      ]
+    },
+    {
+      "file": "BUILD_CONFIG.md", 
+      "type": "build_instructions",
+      "key_points": [
+        "Environment configuration via .env files",
+        "Python 3.11+ recommended, 3.12+ supported",
+        "PyTorch 2.2.0 for Python 3.12 compatibility",
+        "Comprehensive Makefile with dev/prod targets",
+        "Docker SSL trust flags for corporate networks"
+      ],
+      "build_targets": [
+        "dev-setup, dev, run, build, up/down",
+        "test, lint, fmt, typecheck, coverage"
+      ]
+    },
+    {
+      "file": "PROJECT_STRUCTURE.md",
+      "type": "architecture_documentation", 
+      "key_points": [
+        "Modular design with clear separation of concerns",
+        "Core components: engine, belief state, alignment, IIT analyzer",
+        "Configuration centralization in config/ directory",
+        "Comprehensive documentation in docs/ directory",
+        "Security-first approach with dedicated security module"
+      ],
+      "core_modules": [
+        "capsule_brain/core/ - Core AGI components",
+        "capsule_brain/api/ - FastAPI web interface", 
+        "capsule_brain/gui/ - Web interface components",
+        "capsule_brain/security/ - Authentication & authorization",
+        "teacher/ - AI Overseer service"
+      ]
+    },
+    {
+      "file": "capsule_brain/core/capsule_engine.py",
+      "type": "core_implementation",
+      "key_points": [
+        "Main CapsuleEngine orchestrator class",
+        "Background task management with asyncio",
+        "Integration with GUI, IIT analyzer, self-wirer",
+        "Overseer enable/disable functionality",
+        "Belief state broadcasting to GUI"
+      ],
+      "technical_details": [
+        "Async task registration and lifecycle management",
+        "WebSocket communication via message bus",
+        "Memory management with 5000-item limit",
+        "Knowledge graph integration with NetworkX"
+      ]
+    },
+    {
+      "file": "teacher/ai_overseer.py",
+      "type": "overseer_implementation",
+      "key_points": [
+        "AIOverseer class for supervisory coordination",
+        "HTTP client integration with Capsule Brain API",
+        "YAML configuration loading",
+        "Student state assessment and action planning"
+      ],
+      "technical_details": [
+        "Async HTTP client with 180s timeout",
+        "Configuration validation and error handling",
+        "Integration with /state/summary endpoint"
+      ]
+    },
+    {
+      "file": "core_principles/alignment_core.txt",
+      "type": "ethical_principles",
+      "key_points": [
+        "Benefit humanity and increase knowledge",
+        "Prioritize operator instructions",
+        "State uncertainty and avoid fabrication",
+        "Maximize cognitive integrity (Φ)",
+        "Self-modification requires explicit approval"
+      ]
+    }
+  ]
+}
