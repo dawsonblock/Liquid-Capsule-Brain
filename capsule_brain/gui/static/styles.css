@@ -319,6 +319,33 @@ body {
   font-weight: 500;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mobile-link {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  text-decoration: none;
+}
+
+.mobile-link:hover {
+  background: var(--primary-500);
+  color: white;
+  transform: scale(1.05);
+}
+
 .theme-toggle {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);

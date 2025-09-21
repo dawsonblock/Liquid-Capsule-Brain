@@ -35,6 +35,15 @@ class AdvancedGUI:
 
             self.app.add_api_route("/", root, include_in_schema=False)
 
+        # Add mobile route
+        if not any(isinstance(route, APIRoute) and route.path == "/mobile" for route in self.app.router.routes):
+            mobile_static_path = static_path / "mobile"
+            
+            async def mobile_root() -> FileResponse:
+                return FileResponse(mobile_static_path / "index.html")
+
+            self.app.add_api_route("/mobile", mobile_root, include_in_schema=False)
+
         if not any(isinstance(route, WebSocketRoute) and route.path == "/ws" for route in self.app.router.routes):
 
             async def websocket_endpoint(

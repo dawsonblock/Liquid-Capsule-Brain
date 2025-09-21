@@ -1,0 +1,1183 @@
+/**
+ * Mobile-Optimized Capsule Brain GUI Application
+ * Designed specifically for touch devices and mobile browsers
+ */
+
+class MobileCapsuleBrainApp {
+  constructor() {
+    this.ws = null;
+    this.isConnected = false;
+    this.currentPanel = 'chat';
+    this.theme = this.getStoredTheme();
+    this.settings = this.loadSettings();
+    this.charts = {};
+    this.notifications = [];
+    this.fileList = [];
+    this.messageHistory = [];
+    this.isMenuOpen = false;
+    
+    this.init();
+  }
+
+  init() {
+    console.log('📱 Initializing Mobile Capsule Brain App...');
+    this.setupEventListeners();
+    this.initializeTheme();
+    
+    // Initialize WebSocket asynchronously
+    setTimeout(() => {
+      this.initializeWebSocket();
+    }, 100);
+    
+    this.initializeCharts();
+    
+    // Load system data asynchronously
+    setTimeout(() => {
+      this.loadSystemData();
+    }, 200);
+    
+    this.hideLoadingScreen();
+    console.log('✅ Mobile Capsule Brain App initialized successfully');
+  }
+
+  // Theme Management
+  initializeTheme() {
+    document.documentElement.setAttribute('data-theme', this.theme);
+    this.updateThemeIcon();
+  }
+
+  getStoredTheme() {
+    const stored = localStorage.getItem('capsule-brain-theme');
+    if (stored) return stored;
+    
+    // Auto-detect system preference
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'light';
+    }
+    return 'dark';
+  }
+
+  toggleTheme() {
+    this.theme = this.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', this.theme);
+    localStorage.setItem('capsule-brain-theme', this.theme);
+    this.updateThemeIcon();
+    this.showNotification('Theme changed', 'success');
+  }
+
+  updateThemeIcon() {
+    const icon = document.querySelector('.theme-icon');
+    if (icon) {
+      icon.textContent = this.theme === 'dark' ? '☀️' : '🌙';
+    }
+  }
+
+  // Settings Management
+  loadSettings() {
+    const defaultSettings = {
+      autoScroll: true,
+      showTimestamps: false,
+      refreshInterval: 5,
+      fontSize: 14
+    };
+    
+    const stored = localStorage.getItem('capsule-brain-settings');
+    return stored ? { ...defaultSettings, ...JSON.parse(stored) } : defaultSettings;
+  }
+
+  saveSettings() {
+    localStorage.setItem('capsule-brain-settings', JSON.stringify(this.settings));
+  }
+
+  updateSetting(key, value) {
+    this.settings[key] = value;
+    this.saveSettings();
+    
+    if (key === 'fontSize') {
+      document.documentElement.style.fontSize = `${value}px`;
+    }
+  }
+
+  // WebSocket Management
+  initializeWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    console.log('🔌 Connecting to WebSocket:', wsUrl);
+    this.ws = new WebSocket(wsUrl);
+    
+    this.ws.onopen = () => {
+      this.isConnected = true;
+      this.updateConnectionStatus('Connected', 'online');
+      this.showNotification('Connected to Capsule Brain', 'success');
+    };
+    
+    this.ws.onclose = () => {
+      console.log('🔌 WebSocket connection closed');
+      this.isConnected = false;
+      this.updateConnectionStatus('Disconnected', 'offline');
+      this.showNotification('Connection lost', 'warning');
+      
+      // Attempt to reconnect after 3 seconds
+      setTimeout(() => this.initializeWebSocket(), 3000);
+    };
+    
+    this.ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      this.updateConnectionStatus('Error', 'offline');
+      this.showNotification('Connection error', 'error');
+    };
+    
+    this.ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        this.handleWebSocketMessage(message);
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+  }
+
+  handleWebSocketMessage(message) {
+    switch (message.type) {
+      case 'phi_update':
+        this.updateSystemMetrics(message.payload);
+        if (this.currentPanel === 'thinking') {
+          this.loadThinkingData();
+        }
+        break;
+      case 'wiring_proposal':
+        this.showNotification('New self-wiring proposal received', 'info');
+        if (this.currentPanel === 'thinking') {
+          this.loadThinkingData();
+        }
+        break;
+      case 'agi_response':
+        this.appendMessage(message.payload.answer, 'assistant');
+        break;
+      case 'overseer_action':
+        this.showNotification(`Overseer: ${message.payload.description}`, 'info');
+        if (this.currentPanel === 'thinking') {
+          this.loadThinkingData();
+        }
+        break;
+      case 'belief_state_update':
+        if (this.currentPanel === 'thinking') {
+          this.updateThinkingData(message.payload);
+        }
+        break;
+      default:
+        console.log('Unknown message type:', message.type);
+    }
+  }
+
+  // UI Management
+  setupEventListeners() {
+    // Mobile menu toggle
+    document.getElementById('menuToggle')?.addEventListener('click', () => {
+      this.toggleMobileMenu();
+    });
+
+    // Theme toggle
+    document.getElementById('themeToggle')?.addEventListener('click', () => {
+      this.toggleTheme();
+    });
+
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const panel = e.currentTarget.dataset.panel;
+        this.switchPanel(panel);
+        this.closeMobileMenu();
+      });
+    });
+
+    // Chat functionality
+    this.setupChatListeners();
+    
+    // System panel
+    this.setupSystemListeners();
+    
+    // Thinking panel
+    this.setupThinkingListeners();
+    
+    // Settings
+    this.setupSettingsListeners();
+    
+    // File upload
+    this.setupFileUpload();
+
+    // Touch gestures
+    this.setupTouchGestures();
+  }
+
+  setupTouchGestures() {
+    let startY = 0;
+    let startX = 0;
+    let isScrolling = false;
+
+    document.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
+      isScrolling = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!isScrolling) {
+        const deltaY = Math.abs(e.touches[0].clientY - startY);
+        const deltaX = Math.abs(e.touches[0].clientX - startX);
+        isScrolling = deltaY > deltaX;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      if (!isScrolling) {
+        const deltaX = e.changedTouches[0].clientX - startX;
+        const deltaY = e.changedTouches[0].clientY - startY;
+        
+        // Swipe right to open menu
+        if (deltaX > 50 && Math.abs(deltaY) < 100) {
+          this.openMobileMenu();
+        }
+        // Swipe left to close menu
+        else if (deltaX < -50 && Math.abs(deltaY) < 100) {
+          this.closeMobileMenu();
+        }
+      }
+    }, { passive: true });
+  }
+
+  toggleMobileMenu() {
+    if (this.isMenuOpen) {
+      this.closeMobileMenu();
+    } else {
+      this.openMobileMenu();
+    }
+  }
+
+  openMobileMenu() {
+    const nav = document.getElementById('mobileNav');
+    if (nav) {
+      nav.classList.add('open');
+      this.isMenuOpen = true;
+    }
+  }
+
+  closeMobileMenu() {
+    const nav = document.getElementById('mobileNav');
+    if (nav) {
+      nav.classList.remove('open');
+      this.isMenuOpen = false;
+    }
+  }
+
+  setupChatListeners() {
+    const chatInput = document.getElementById('chatInput');
+    const sendButton = document.getElementById('sendButton');
+    const clearChat = document.getElementById('clearChat');
+    const exportChat = document.getElementById('exportChat');
+
+    // Send message
+    sendButton?.addEventListener('click', () => this.sendMessage());
+    
+    // Enter key handling
+    chatInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendMessage();
+      }
+    });
+
+    // Auto-resize textarea
+    chatInput?.addEventListener('input', (e) => {
+      this.updateCharacterCounter(e.target.value.length);
+      this.updateSendButton(e.target.value.trim().length > 0);
+      this.autoResizeTextarea(e.target);
+    });
+
+    // Clear chat
+    clearChat?.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear the conversation?')) {
+        this.clearChat();
+      }
+    });
+
+    // Export chat
+    exportChat?.addEventListener('click', () => {
+      this.exportChat();
+    });
+  }
+
+  autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+  }
+
+  setupSystemListeners() {
+    const refreshSystem = document.getElementById('refreshSystem');
+    
+    refreshSystem?.addEventListener('click', () => {
+      this.loadSystemData();
+      this.showNotification('System data refreshed', 'success');
+    });
+
+    // Overseer controls
+    const enableOverseer = document.getElementById('enableOverseer');
+    const disableOverseer = document.getElementById('disableOverseer');
+    
+    enableOverseer?.addEventListener('click', () => {
+      this.enableOverseer();
+    });
+    
+    disableOverseer?.addEventListener('click', () => {
+      this.disableOverseer();
+    });
+  }
+
+  setupThinkingListeners() {
+    const refreshThinking = document.getElementById('refreshThinking');
+    
+    refreshThinking?.addEventListener('click', () => {
+      this.loadThinkingData();
+      this.showNotification('Thinking data refreshed', 'success');
+    });
+  }
+
+  setupSettingsListeners() {
+    // Theme selector
+    const themeSelect = document.getElementById('themeSelect');
+    themeSelect?.addEventListener('change', (e) => {
+      this.theme = e.target.value === 'auto' ? 
+        (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : 
+        e.target.value;
+      this.initializeTheme();
+    });
+
+    // Font size
+    const fontSize = document.getElementById('fontSize');
+    const fontSizeValue = document.getElementById('fontSizeValue');
+    fontSize?.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      this.updateSetting('fontSize', value);
+      fontSizeValue.textContent = `${value}px`;
+    });
+
+    // Auto scroll
+    const autoScroll = document.getElementById('autoScroll');
+    autoScroll?.addEventListener('change', (e) => {
+      this.updateSetting('autoScroll', e.target.checked);
+    });
+
+    // Show timestamps
+    const showTimestamps = document.getElementById('showTimestamps');
+    showTimestamps?.addEventListener('change', (e) => {
+      this.updateSetting('showTimestamps', e.target.checked);
+    });
+
+    // Refresh interval
+    const refreshInterval = document.getElementById('refreshInterval');
+    refreshInterval?.addEventListener('change', (e) => {
+      this.updateSetting('refreshInterval', parseInt(e.target.value));
+    });
+  }
+
+  setupFileUpload() {
+    const fileUpload = document.getElementById('fileUpload');
+    const fileList = document.getElementById('fileList');
+
+    fileUpload?.addEventListener('change', (e) => {
+      this.handleFileSelection(Array.from(e.target.files));
+    });
+  }
+
+  // Panel Management
+  switchPanel(panelName) {
+    // Update navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    document.querySelector(`[data-panel="${panelName}"]`)?.classList.add('active');
+
+    // Update panels
+    document.querySelectorAll('.panel').forEach(panel => {
+      panel.classList.remove('active');
+    });
+    
+    const panelIdMap = {
+      'chat': 'chatPanel',
+      'system': 'systemPanel',
+      'thinking': 'thinkingPanel',
+      'analytics': 'analyticsPanel',
+      'settings': 'settingsPanel'
+    };
+    
+    const panelId = panelIdMap[panelName];
+    if (panelId) {
+      document.getElementById(panelId)?.classList.add('active');
+    }
+
+    this.currentPanel = panelName;
+
+    // Load panel-specific data
+    if (panelName === 'system') {
+      this.loadSystemData();
+    } else if (panelName === 'thinking') {
+      this.loadThinkingData();
+    } else if (panelName === 'analytics') {
+      this.loadAnalyticsData();
+    }
+  }
+
+  // Chat Management
+  async sendMessage() {
+    const chatInput = document.getElementById('chatInput');
+    const message = chatInput?.value.trim();
+    const files = this.fileList;
+
+    if (!message && files.length === 0) return;
+
+    // Add user message
+    if (message) {
+      this.appendMessage(message, 'user');
+    }
+
+    // Show thinking indicator
+    this.showThinkingIndicator();
+    
+    // Show file processing indicator if files are attached
+    if (files.length > 0) {
+      this.showNotification(`Processing ${files.length} file(s)...`, 'info');
+    }
+
+    // Clear input
+    chatInput.value = '';
+    this.updateCharacterCounter(0);
+    this.updateSendButton(false);
+    this.autoResizeTextarea(chatInput);
+
+    try {
+      let response;
+      
+      if (files.length > 0) {
+        // Send with files
+        const formData = new FormData();
+        formData.append('q', message || 'Document question');
+        files.forEach(file => {
+          formData.append('file', file);
+        });
+
+        response = await fetch('/ask_with_document', {
+          method: 'POST',
+          body: formData
+        });
+      } else {
+        // Send text only
+        response = await fetch('/ask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ q: message })
+        });
+      }
+
+      const data = await response.json();
+      
+      // Hide thinking indicator
+      this.hideThinkingIndicator();
+      
+      // Show file processing results if available
+      if (data.file_processed) {
+        const fileInfo = data.file_processed;
+        this.showNotification(
+          `File processed: ${fileInfo.filename} (${fileInfo.type}, ${fileInfo.size} bytes, ${fileInfo.extracted_length} chars extracted)`,
+          'success'
+        );
+        
+        // Add file processing info to chat
+        this.appendMessage(
+          `📄 **File Processed Successfully**\n` +
+          `**Filename:** ${fileInfo.filename}\n` +
+          `**Type:** ${fileInfo.type}\n` +
+          `**Size:** ${fileInfo.size} bytes\n` +
+          `**Content Extracted:** ${fileInfo.extracted_length} characters\n\n` +
+          `**Content Preview:**\n${fileInfo.preview}`,
+          'system'
+        );
+      }
+      
+      if (data.error) {
+        this.appendMessage(`❌ **File Processing Error:** ${data.error}`, 'system');
+      }
+      
+      if (data.llm_response?.text) {
+        this.appendMessage(data.llm_response.text, 'assistant');
+      } else {
+        this.appendMessage('No response received', 'system');
+      }
+
+      // Clear files
+      this.clearFiles();
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      this.hideThinkingIndicator();
+      this.appendMessage('Error: Request failed', 'system');
+      this.showNotification('Failed to send message', 'error');
+    }
+  }
+
+  showThinkingIndicator() {
+    const indicator = document.getElementById('thinkingIndicator');
+    if (indicator) {
+      indicator.classList.remove('hidden');
+    }
+  }
+
+  hideThinkingIndicator() {
+    const indicator = document.getElementById('thinkingIndicator');
+    if (indicator) {
+      indicator.classList.add('hidden');
+    }
+  }
+
+  appendMessage(content, sender) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+
+    // Remove welcome message if it exists
+    const welcomeMessage = chatMessages.querySelector('.welcome-message');
+    if (welcomeMessage) {
+      welcomeMessage.remove();
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    messageContent.innerHTML = window.marked?.parse(content) || content;
+
+    messageDiv.appendChild(messageContent);
+
+    // Add timestamp if enabled
+    if (this.settings.showTimestamps) {
+      const timestamp = document.createElement('div');
+      timestamp.className = 'message-time';
+      timestamp.textContent = new Date().toLocaleTimeString();
+      messageDiv.appendChild(timestamp);
+    }
+
+    chatMessages.appendChild(messageDiv);
+
+    // Auto-scroll if enabled
+    if (this.settings.autoScroll) {
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Store in history
+    this.messageHistory.push({
+      content,
+      sender,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  clearChat() {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+
+    chatMessages.innerHTML = `
+      <div class="welcome-message">
+        <div class="welcome-content">
+          <div class="welcome-icon">🤖</div>
+          <h3>Welcome to Capsule Brain</h3>
+          <p>Your AI assistant is ready to help!</p>
+        </div>
+      </div>
+    `;
+
+    this.messageHistory = [];
+    this.showNotification('Chat cleared', 'success');
+  }
+
+  exportChat() {
+    if (this.messageHistory.length === 0) {
+      this.showNotification('No messages to export', 'warning');
+      return;
+    }
+
+    const exportData = {
+      timestamp: new Date().toISOString(),
+      messages: this.messageHistory
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json'
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `capsule-brain-chat-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    this.showNotification('Chat exported successfully', 'success');
+  }
+
+  // File Management
+  handleFileSelection(files) {
+    this.fileList = [...this.fileList, ...files];
+    this.updateFileList();
+  }
+
+  updateFileList() {
+    const fileList = document.getElementById('fileList');
+    if (!fileList) return;
+
+    fileList.innerHTML = '';
+
+    this.fileList.forEach((file, index) => {
+      const fileItem = document.createElement('div');
+      fileItem.className = 'file-item';
+      fileItem.innerHTML = `
+        <span>${file.name}</span>
+        <span class="file-remove" data-index="${index}">×</span>
+      `;
+
+      fileItem.querySelector('.file-remove').addEventListener('click', (e) => {
+        const index = parseInt(e.target.dataset.index);
+        this.removeFile(index);
+      });
+
+      fileList.appendChild(fileItem);
+    });
+  }
+
+  removeFile(index) {
+    this.fileList.splice(index, 1);
+    this.updateFileList();
+  }
+
+  clearFiles() {
+    this.fileList = [];
+    this.updateFileList();
+    document.getElementById('fileUpload').value = '';
+  }
+
+  // System Data Management
+  async loadSystemData() {
+    try {
+      const response = await fetch('/state/summary');
+      const data = await response.json();
+      this.updateSystemMetrics(data.self_awareness_metrics);
+      this.updateSystemDetails(data);
+    } catch (error) {
+      console.error('Error loading system data:', error);
+      this.showNotification('Failed to load system data', 'error');
+    }
+  }
+
+  // Thinking Data Management
+  async loadThinkingData() {
+    try {
+      const response = await fetch('/state/summary');
+      const data = await response.json();
+      this.updateThinkingData(data);
+    } catch (error) {
+      console.error('Error loading thinking data:', error);
+      this.showNotification('Failed to load thinking data', 'error');
+    }
+  }
+
+  updateThinkingData(data) {
+    // Update current query
+    this.updateCurrentQuery(data.belief_state);
+    
+    // Update retrieved knowledge
+    this.updateRetrievedKnowledge(data.belief_state);
+    
+    // Update current plan
+    this.updateCurrentPlan(data.belief_state);
+    
+    // Update recent memories
+    this.updateRecentMemories(data.recent_memories);
+    
+    // Update neural activity
+    this.updateNeuralActivity(data.thinking_process);
+  }
+
+  updateCurrentQuery(beliefState) {
+    const queryText = document.querySelector('#currentQuery');
+    const queryTimestamp = document.getElementById('queryTimestamp');
+    
+    if (beliefState?.current_query) {
+      queryText.textContent = beliefState.current_query;
+      queryTimestamp.textContent = `Last updated: ${new Date(beliefState.last_update * 1000).toLocaleString()}`;
+    } else {
+      queryText.textContent = 'No active query';
+      queryTimestamp.textContent = '';
+    }
+  }
+
+  updateRetrievedKnowledge(beliefState) {
+    const knowledgeList = document.getElementById('retrievedKnowledge');
+    
+    if (beliefState?.retrieved_knowledge && beliefState.retrieved_knowledge.length > 0) {
+      knowledgeList.innerHTML = '';
+      beliefState.retrieved_knowledge.forEach((knowledge, index) => {
+        const item = document.createElement('div');
+        item.className = 'knowledge-item';
+        item.textContent = `${index + 1}. ${knowledge}`;
+        knowledgeList.appendChild(item);
+      });
+    } else {
+      knowledgeList.innerHTML = '<div class="knowledge-item">No knowledge retrieved</div>';
+    }
+  }
+
+  updateCurrentPlan(beliefState) {
+    const planDisplay = document.getElementById('currentPlan');
+    
+    if (beliefState?.current_plan && Object.keys(beliefState.current_plan).length > 0) {
+      planDisplay.innerHTML = '';
+      Object.entries(beliefState.current_plan).forEach(([key, value]) => {
+        const item = document.createElement('div');
+        item.className = 'plan-item';
+        item.innerHTML = `<strong>${key}:</strong> ${JSON.stringify(value)}`;
+        planDisplay.appendChild(item);
+      });
+    } else {
+      planDisplay.innerHTML = '<div class="plan-item">No active plan</div>';
+    }
+  }
+
+  updateRecentMemories(memories) {
+    const memoriesList = document.getElementById('recentMemories');
+    
+    if (memories && memories.length > 0) {
+      memoriesList.innerHTML = '';
+      memories.forEach(memory => {
+        const item = document.createElement('div');
+        item.className = 'memory-item';
+        
+        const role = document.createElement('div');
+        role.className = 'memory-role';
+        role.textContent = memory.role || 'unknown';
+        
+        const content = document.createElement('div');
+        content.className = 'memory-content';
+        content.textContent = memory.content || 'No content';
+        
+        const timestamp = document.createElement('div');
+        timestamp.className = 'memory-timestamp';
+        timestamp.textContent = new Date(memory.ts * 1000).toLocaleString();
+        
+        item.appendChild(role);
+        item.appendChild(content);
+        item.appendChild(timestamp);
+        memoriesList.appendChild(item);
+      });
+    } else {
+      memoriesList.innerHTML = '<div class="memory-item">No memories available</div>';
+    }
+  }
+
+  updateNeuralActivity(thinkingProcess) {
+    const neuralPhi = document.getElementById('neuralPhi');
+    const neuralGlyphs = document.getElementById('neuralGlyphs');
+    const graphActivity = document.getElementById('graphActivity');
+    
+    if (thinkingProcess) {
+      // Update Phi level
+      if (neuralPhi && thinkingProcess.current_phi !== undefined) {
+        neuralPhi.textContent = thinkingProcess.current_phi.toFixed(4);
+      }
+      
+      // Update glyphs
+      if (neuralGlyphs && thinkingProcess.neural_glyphs) {
+        neuralGlyphs.textContent = thinkingProcess.neural_glyphs.join(' ') || '∅';
+      }
+      
+      // Update graph activity
+      if (graphActivity && thinkingProcess.graph_activity) {
+        const activity = thinkingProcess.graph_activity;
+        graphActivity.textContent = `${activity.recent_additions} recent additions`;
+      }
+    }
+  }
+
+  updateSystemMetrics(metrics) {
+    if (!metrics) return;
+
+    // Update Phi value
+    const phiValue = document.getElementById('phiValue');
+    if (phiValue && metrics.phi !== undefined) {
+      phiValue.textContent = (+metrics.phi).toFixed(4);
+    }
+
+    // Update glyphs
+    const glyphsValue = document.getElementById('glyphsValue');
+    if (glyphsValue && metrics.glyphs) {
+      glyphsValue.textContent = (metrics.glyphs || []).join(' ') || '∅';
+    }
+
+    // Update memory usage
+    const memoryValue = document.getElementById('memoryValue');
+    const memoryProgress = document.getElementById('memoryProgress');
+    if (memoryValue && metrics.memory_size !== undefined) {
+      memoryValue.textContent = metrics.memory_size;
+      if (memoryProgress) {
+        const percentage = Math.min((metrics.memory_size / 5000) * 100, 100);
+        memoryProgress.style.width = `${percentage}%`;
+      }
+    }
+
+    // Update uptime
+    const uptimeValue = document.getElementById('uptimeValue');
+    if (uptimeValue && metrics.uptime_s !== undefined) {
+      uptimeValue.textContent = this.formatUptime(metrics.uptime_s);
+    }
+  }
+
+  updateSystemDetails(data) {
+    // Update graph details
+    const graphNodes = document.getElementById('graphNodes');
+    const graphEdges = document.getElementById('graphEdges');
+    if (graphNodes && data.graph?.nodes !== undefined) {
+      graphNodes.textContent = data.graph.nodes;
+    }
+    if (graphEdges && data.graph?.edges !== undefined) {
+      graphEdges.textContent = data.graph.edges;
+    }
+
+    // Update overseer status
+    this.updateOverseerStatus(data.overseer_enabled);
+  }
+
+  updateOverseerStatus(enabled) {
+    const overseerStatus = document.getElementById('overseerStatus');
+    if (overseerStatus) {
+      overseerStatus.textContent = enabled ? 'Enabled' : 'Disabled';
+      overseerStatus.className = `status-value ${enabled ? 'enabled' : 'disabled'}`;
+    }
+  }
+
+  async enableOverseer() {
+    try {
+      const response = await fetch('/overseer/enable', {
+        method: 'POST',
+        headers: {
+          'x-admin-token': 'your-admin-token' // This should be configured properly
+        }
+      });
+      
+      if (response.ok) {
+        this.showNotification('AI Overseer enabled', 'success');
+        this.loadSystemData();
+      } else {
+        this.showNotification('Failed to enable overseer', 'error');
+      }
+    } catch (error) {
+      console.error('Error enabling overseer:', error);
+      this.showNotification('Error enabling overseer', 'error');
+    }
+  }
+
+  async disableOverseer() {
+    try {
+      const response = await fetch('/overseer/disable', {
+        method: 'POST',
+        headers: {
+          'x-admin-token': 'your-admin-token' // This should be configured properly
+        }
+      });
+      
+      if (response.ok) {
+        this.showNotification('AI Overseer disabled', 'success');
+        this.loadSystemData();
+      } else {
+        this.showNotification('Failed to disable overseer', 'error');
+      }
+    } catch (error) {
+      console.error('Error disabling overseer:', error);
+      this.showNotification('Error disabling overseer', 'error');
+    }
+  }
+
+  formatUptime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  }
+
+  // Analytics
+  initializeCharts() {
+    this.initializePhiChart();
+    this.initializeTokenChart();
+  }
+
+  initializePhiChart() {
+    const ctx = document.getElementById('phiChart')?.getContext('2d');
+    if (!ctx) return;
+
+    this.charts.phi = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Phi (Consciousness Level)',
+          data: [],
+          borderColor: '#0ea5e9',
+          backgroundColor: 'rgba(14, 165, 233, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: '#e2e8f0'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  initializeTokenChart() {
+    const ctx = document.getElementById('tokenChart')?.getContext('2d');
+    if (!ctx) return;
+
+    this.charts.tokens = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Prompt', 'Completion', 'Total'],
+        datasets: [{
+          label: 'Token Usage',
+          data: [0, 0, 0],
+          backgroundColor: [
+            'rgba(34, 197, 94, 0.8)',
+            'rgba(168, 85, 247, 0.8)',
+            'rgba(14, 165, 233, 0.8)'
+          ],
+          borderColor: [
+            '#22c55e',
+            '#a855f7',
+            '#0ea5e9'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: '#e2e8f0'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  loadAnalyticsData() {
+    fetch('/metrics')
+      .then(response => response.text())
+      .then(data => {
+        this.parseMetricsData(data);
+      })
+      .catch(error => {
+        console.error('Error loading analytics data:', error);
+      });
+  }
+
+  parseMetricsData(metricsText) {
+    const lines = metricsText.split('\n');
+    const tokenData = { prompt: 0, completion: 0, total: 0 };
+
+    lines.forEach(line => {
+      if (line.includes('cb_tokens_total') && !line.startsWith('#')) {
+        const match = line.match(/cb_tokens_total\{.*type="(\w+)".*\} (\d+)/);
+        if (match) {
+          const type = match[1];
+          const value = parseInt(match[2]);
+          if (type === 'prompt') tokenData.prompt = value;
+          else if (type === 'completion') tokenData.completion = value;
+          else if (type === 'total') tokenData.total = value;
+        }
+      }
+    });
+
+    if (this.charts.tokens) {
+      this.charts.tokens.data.datasets[0].data = [
+        tokenData.prompt,
+        tokenData.completion,
+        tokenData.total
+      ];
+      this.charts.tokens.update();
+    }
+  }
+
+  // Utility Functions
+  updateConnectionStatus(text, status) {
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.querySelector('.status-dot');
+    
+    if (statusText) statusText.textContent = text;
+    if (statusDot) {
+      statusDot.className = `status-dot ${status}`;
+    }
+  }
+
+  updateCharacterCounter(count) {
+    const charCount = document.getElementById('charCount');
+    if (charCount) {
+      charCount.textContent = count;
+      charCount.style.color = count > 3500 ? '#ef4444' : '#94a3b8';
+    }
+  }
+
+  updateSendButton(enabled) {
+    const sendButton = document.getElementById('sendButton');
+    if (sendButton) {
+      sendButton.disabled = !enabled;
+    }
+  }
+
+  showNotification(message, type = 'info') {
+    const container = document.getElementById('notificationContainer');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+      <div>${message}</div>
+      <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    container.appendChild(notification);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 5000);
+  }
+
+  hideLoadingScreen() {
+    console.log('🔄 Hiding mobile loading screen...');
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen) {
+      setTimeout(() => {
+        loadingScreen.classList.add('hidden');
+        setTimeout(() => {
+          loadingScreen.style.display = 'none';
+        }, 500);
+      }, 1000);
+    }
+  }
+}
+
+// Initialize the mobile application when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('📱 DOM Content Loaded - Starting mobile initialization...');
+  
+  try {
+    console.log('🔄 Creating MobileCapsuleBrainApp instance...');
+    window.mobileCapsuleBrainApp = new MobileCapsuleBrainApp();
+    console.log('✅ MobileCapsuleBrainApp created successfully');
+  } catch (error) {
+    console.error('❌ Error initializing Mobile Capsule Brain App:', error);
+    console.error('❌ Error stack:', error.stack);
+    
+    // Fallback: hide loading screen even if there's an error
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen) {
+      loadingScreen.style.display = 'none';
+    }
+  }
+});
+
+// Fallback: hide loading screen after 3 seconds regardless
+setTimeout(() => {
+  const loadingScreen = document.getElementById('loadingScreen');
+  if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+    console.log('⚠️ Fallback: Hiding mobile loading screen after timeout');
+    loadingScreen.classList.add('hidden');
+    setTimeout(() => {
+      loadingScreen.style.display = 'none';
+    }, 500);
+  }
+}, 3000);
+
+// Handle page visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && window.mobileCapsuleBrainApp) {
+    window.mobileCapsuleBrainApp.loadSystemData();
+  }
+});
+
+// Handle window resize for responsive charts
+window.addEventListener('resize', () => {
+  if (window.mobileCapsuleBrainApp?.charts) {
+    Object.values(window.mobileCapsuleBrainApp.charts).forEach(chart => {
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize();
+      }
+    });
+  }
+});
+
+// Prevent zoom on double tap for iOS
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (event) => {
+  const now = (new Date()).getTime();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
