@@ -871,7 +871,7 @@ class MobileCapsuleBrainApp {
       const response = await fetch('/overseer/enable', {
         method: 'POST',
         headers: {
-          'x-admin-token': 'your-admin-token' // This should be configured properly
+          'x-admin-token': 'cb_admin_bfd38aaa245bdfcc3a756221be8e36ee'
         }
       });
       
@@ -892,7 +892,7 @@ class MobileCapsuleBrainApp {
       const response = await fetch('/overseer/disable', {
         method: 'POST',
         headers: {
-          'x-admin-token': 'your-admin-token' // This should be configured properly
+          'x-admin-token': 'cb_admin_bfd38aaa245bdfcc3a756221be8e36ee'
         }
       });
       

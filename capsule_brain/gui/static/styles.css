@@ -50,6 +50,24 @@
   --error: #ef4444;
   --info: var(--primary-500);
 
+  /* Enhanced Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--primary-500), var(--accent-500));
+  --gradient-secondary: linear-gradient(135deg, var(--neutral-800), var(--neutral-900));
+  --gradient-success: linear-gradient(135deg, #10b981, #059669);
+  --gradient-warning: linear-gradient(135deg, #f59e0b, #d97706);
+  --gradient-error: linear-gradient(135deg, #ef4444, #dc2626);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+
+  /* Glass Effect */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-backdrop: blur(10px);
+
+  /* Enhanced Shadows */
+  --shadow-glow: 0 0 20px rgb(14 165 233 / 0.3);
+  --shadow-glow-success: 0 0 20px rgb(16 185 129 / 0.3);
+  --shadow-glow-error: 0 0 20px rgb(239 68 68 / 0.3);
+
   /* Dark Theme */
   --bg-primary: var(--neutral-900);
   --bg-secondary: var(--neutral-800);
@@ -1313,6 +1331,17 @@ body {
   }
 }
 
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -1494,4 +1523,150 @@ textarea:focus {
   .message-content {
     break-inside: avoid;
   }
+}
+
+/* Enhanced Modern UI Components */
+.glass-card {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.gradient-button {
+  background: var(--gradient-primary);
+  border: none;
+  color: white;
+  font-weight: 600;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.gradient-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left var(--transition-normal);
+}
+
+.gradient-button:hover::before {
+  left: 100%;
+}
+
+.gradient-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.animated-card {
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.animated-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.glow-effect {
+  box-shadow: var(--shadow-glow);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: var(--shadow-glow); }
+  to { box-shadow: var(--shadow-glow), 0 0 30px rgb(14 165 233 / 0.4); }
+}
+
+.status-indicator {
+  position: relative;
+  display: inline-block;
+}
+
+.status-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.offline::after {
+  background: var(--error);
+}
+
+/* Enhanced Loading States */
+.loading-skeleton {
+  background: linear-gradient(90deg, var(--neutral-200) 25%, var(--neutral-100) 50%, var(--neutral-200) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Modern Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--neutral-100);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gradient-primary);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gradient-secondary);
+}
+
+/* Enhanced Notifications */
+.notification {
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  animation: slideInRight 0.3s ease-out;
+}
+
+.notification.success {
+  background: var(--gradient-success);
+  color: white;
+}
+
+.notification.error {
+  background: var(--gradient-error);
+  color: white;
+}
+
+.notification.warning {
+  background: var(--gradient-warning);
+  color: white;
 }

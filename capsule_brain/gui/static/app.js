@@ -601,12 +601,49 @@ class CapsuleBrainApp {
   async loadSystemData() {
     try {
       const response = await fetch('/state/summary');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const data = await response.json();
       this.updateSystemMetrics(data.self_awareness_metrics);
       this.updateSystemDetails(data);
+      
+      // Check system health
+      this.checkSystemHealth(data);
     } catch (error) {
       console.error('Error loading system data:', error);
-      this.showNotification('Failed to load system data', 'error');
+      this.showNotification(`Failed to load system data: ${error.message}`, 'error');
+      this.updateConnectionStatus('Error', 'offline');
+    }
+  }
+
+  checkSystemHealth(data) {
+    const issues = [];
+    
+    // Check memory usage
+    if (data.memory_size > 4000) {
+      issues.push('High memory usage');
+    }
+    
+    // Check uptime
+    if (data.uptime_s < 60) {
+      issues.push('System recently restarted');
+    }
+    
+    // Check overseer status
+    if (!data.overseer_enabled) {
+      issues.push('AI Overseer disabled');
+    }
+    
+    // Check graph health
+    if (data.graph.nodes < 10) {
+      issues.push('Knowledge graph underdeveloped');
+    }
+    
+    if (issues.length > 0) {
+      this.showNotification(`System warnings: ${issues.join(', ')}`, 'warning', 8000);
+    } else {
+      this.updateConnectionStatus('Healthy', 'online');
     }
   }
 
@@ -812,7 +849,7 @@ class CapsuleBrainApp {
       const response = await fetch('/overseer/enable', {
         method: 'POST',
         headers: {
-          'x-admin-token': 'your-admin-token' // This should be configured properly
+          'x-admin-token': 'cb_admin_bfd38aaa245bdfcc3a756221be8e36ee'
         }
       });
       
@@ -833,7 +870,7 @@ class CapsuleBrainApp {
       const response = await fetch('/overseer/disable', {
         method: 'POST',
         headers: {
-          'x-admin-token': 'your-admin-token' // This should be configured properly
+          'x-admin-token': 'cb_admin_bfd38aaa245bdfcc3a756221be8e36ee'
         }
       });
       
@@ -1033,7 +1070,7 @@ class CapsuleBrainApp {
     }
   }
 
-  showNotification(message, type = 'info') {
+  showNotification(message, type = 'info', duration = 5000) {
     const container = document.getElementById('notificationContainer');
     if (!container) return;
 
@@ -1044,14 +1081,22 @@ class CapsuleBrainApp {
       <button class="notification-close" onclick="this.parentElement.remove()">×</button>
     `;
 
+    // Add animation classes
+    notification.style.animation = 'slideInRight 0.3s ease-out';
+    
     container.appendChild(notification);
 
-    // Auto-remove after 5 seconds
+    // Auto-remove after specified duration
     setTimeout(() => {
       if (notification.parentElement) {
-        notification.remove();
+        notification.style.animation = 'slideOutRight 0.3s ease-in';
+        setTimeout(() => {
+          if (notification.parentElement) {
+            notification.remove();
+          }
+        }, 300);
       }
-    }, 5000);
+    }, duration);
   }
 
   hideLoadingScreen() {

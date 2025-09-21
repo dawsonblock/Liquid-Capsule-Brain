@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,24 @@ class AIOverseer:
         self.student_api_host = student_api_host.rstrip("/")
         self.config = self._load_config(config_path)
         self.http_client = httpx.AsyncClient(timeout=http_timeout)
+        
+        # Conversation memory to prevent repetitive questions
+        self.asked_questions: list[tuple[str, float]] = []  # (question, timestamp)
+        self.question_rotation_index = 0
+        
+        # Diverse question bank for reasoning probes
+        self.reasoning_questions = [
+            "How does entropy in thermodynamics relate to technical debt in software systems?",
+            "What are the parallels between biological evolution and machine learning optimization?",
+            "How can principles from quantum mechanics inform distributed systems design?",
+            "What insights from cognitive psychology can improve AI system architecture?",
+            "How do economic principles of supply and demand apply to computational resource allocation?",
+            "What can we learn from ecological systems for building resilient software architectures?",
+            "How do principles from game theory apply to cybersecurity and adversarial AI?",
+            "What parallels exist between musical composition and algorithmic design?",
+            "How can principles from linguistics improve natural language processing systems?",
+            "What insights from physics can enhance our understanding of information theory?"
+        ]
 
     @staticmethod
     def _load_config(config_path: str | Path) -> Mapping[str, Any]:
@@ -42,6 +61,34 @@ class AIOverseer:
             raise ValueError("'ai_overseer_config' section missing or invalid")
 
         return section
+
+    def _select_next_question(self, recent_memories: list[dict], current_time: float) -> str | None:
+        """Select a question that hasn't been asked recently."""
+        # Check recent memories for questions asked in the last 10 minutes
+        recent_questions = set()
+        for memory in recent_memories[-10:]:  # Check last 10 memories
+            if memory.get("role") == "user":
+                content = memory.get("content", "")
+                # Check if this looks like a reasoning probe question
+                for question in self.reasoning_questions:
+                    if question.lower() in content.lower():
+                        recent_questions.add(question)
+        
+        # Also check our internal question history (last 10 minutes)
+        for question, timestamp in self.asked_questions:
+            if current_time - timestamp < 600:  # 10 minutes
+                recent_questions.add(question)
+        
+        # Find a question that hasn't been asked recently
+        for i in range(len(self.reasoning_questions)):
+            question = self.reasoning_questions[self.question_rotation_index]
+            self.question_rotation_index = (self.question_rotation_index + 1) % len(self.reasoning_questions)
+            
+            if question not in recent_questions:
+                return question
+        
+        # All questions have been asked recently
+        return None
 
     async def assess_student_state(self) -> dict[str, Any]:
         response = await self.http_client.get(f"{self.student_api_host}/state/summary")
@@ -61,11 +108,33 @@ class AIOverseer:
             except (TypeError, ValueError):  # pragma: no cover - defensive fallback
                 log.debug("Unable to interpret phi value: %s", phi_value)
 
+        # Check recent memories to avoid repetitive questions
+        recent_memories = student_state.get("recent_memories", [])
+        current_time = time.time()
+        
+        # Clean up old question history (older than 1 hour)
+        self.asked_questions = [
+            (q, t) for q, t in self.asked_questions 
+            if current_time - t < 3600
+        ]
+
         if phi < 1.0:
-            return {
-                "action": "reasoning_probe",
-                "question": "How does entropy in thermodynamics relate to technical debt in software systems?",
-            }
+            # Select a question that hasn't been asked recently
+            question = self._select_next_question(recent_memories, current_time)
+            if question:
+                # Record this question as asked
+                self.asked_questions.append((question, current_time))
+                return {
+                    "action": "reasoning_probe",
+                    "question": question,
+                }
+            else:
+                # If all questions have been asked recently, wait
+                log.info("All reasoning questions asked recently, skipping probe")
+                return {
+                    "action": "wait",
+                    "reason": "recent_questions_exhausted"
+                }
 
         return {
             "action": "graph_synthesis",
@@ -80,10 +149,16 @@ class AIOverseer:
         if action == "reasoning_probe":
             question = plan.get("question")
             if isinstance(question, str):
+                log.info(f"Overseer asking reasoning probe: {question[:50]}...")
                 await self.http_client.post(
                     f"{self.student_api_host}/ask",
                     json={"q": question},
                 )
+            return
+
+        if action == "wait":
+            reason = plan.get("reason", "unknown")
+            log.info(f"Overseer waiting: {reason}")
             return
 
         if action == "knowledge_injection":
