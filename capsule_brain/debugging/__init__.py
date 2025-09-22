@@ -22,5 +22,5 @@ __all__ = [
     "error_tracker",
     "performance_monitor",
     "health_checker",
-    "advanced_debugger"
+    "advanced_debugger",
 ]

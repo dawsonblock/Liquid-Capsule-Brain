@@ -45,9 +45,7 @@ async def app_lifespan(fastapi_app: FastAPI) -> AsyncIterator[None]:
     await capsule_engine.start_background_tasks(fastapi_app)
     gui = AdvancedGUI(capsule_engine, fastapi_app)
     fastapi_app.state.gui = gui
-    broadcaster_task = asyncio.create_task(
-        fastapi_app.state.gui.run_broadcasters()
-    )
+    broadcaster_task = asyncio.create_task(fastapi_app.state.gui.run_broadcasters())
     log.info("Engine started.")
     try:
         yield
@@ -70,10 +68,7 @@ app = FastAPI(
 
 # Configure CORS from environment
 _cors = os.getenv("CORS_ORIGINS", "*")
-origins = (
-    ["*"] if _cors == "*"
-    else [o.strip() for o in _cors.split(",") if o.strip()]
-)
+origins = ["*"] if _cors == "*" else [o.strip() for o in _cors.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -90,13 +85,12 @@ async def add_cache_control_header(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
     response = await call_next(request)
-    if request.url.path.endswith(('.js', '.css')):
-        response.headers["Cache-Control"] = (
-            "no-cache, no-store, must-revalidate"
-        )
+    if request.url.path.endswith((".js", ".css")):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
+
 
 # Configure Prometheus metrics before app startup
 setup_metrics(app)
@@ -161,9 +155,7 @@ async def ask(
     except (ValueError, TypeError, KeyError):  # defensive metrics guard
         pass
 
-    context, system_prompt = (
-        engine.belief_state_manager.synthesize_context_for_llm()
-    )
+    context, system_prompt = engine.belief_state_manager.synthesize_context_for_llm()
     return {
         "ack": True,
         "context": context,
@@ -188,20 +180,13 @@ async def ask_with_document(
         MAX_BYTES = int(os.getenv("UPLOAD_MAX_BYTES", "10485760"))  # 10 MiB
         if len(file_content) > MAX_BYTES:
             raise HTTPException(
-                status_code=413,
-                detail=f"File too large. Maximum size: {MAX_BYTES} bytes"
+                status_code=413, detail=f"File too large. Maximum size: {MAX_BYTES} bytes"
             )
-        log.info(
-            "Processing uploaded file: %s (%d bytes)",
-            file.filename,
-            len(file_content)
-        )
+        log.info("Processing uploaded file: %s (%d bytes)", file.filename, len(file_content))
 
         # Extract text content from the file
         extracted_text, file_meta = extract_bytes(
-            file.filename or "unknown",
-            file.content_type,
-            file_content
+            file.filename or "unknown", file.content_type, file_content
         )
 
         log.info("Extracted text length: %d characters", len(extracted_text))
@@ -226,13 +211,11 @@ Document Content:
         # Update belief state with document context
         engine.belief_state_manager.retrieved_knowledge = [
             f"Document: {file.filename} ({file_meta.get('type', 'unknown')})",
-            f"Content preview: {extracted_text[:200]}..."
+            f"Content preview: {extracted_text[:200]}...",
         ]
 
         # Generate LLM response
-        llm_response = await (
-            engine.belief_state_manager.generate_llm_response()
-        )
+        llm_response = await engine.belief_state_manager.generate_llm_response()
 
         if llm_response.get("text"):
             engine.add_memory("assistant", llm_response["text"])
@@ -253,9 +236,7 @@ Document Content:
         except (ValueError, TypeError, KeyError):
             pass
 
-        context, system_prompt = (
-            engine.belief_state_manager.synthesize_context_for_llm()
-        )
+        context, system_prompt = engine.belief_state_manager.synthesize_context_for_llm()
 
         return {
             "ack": True,
@@ -268,26 +249,20 @@ Document Content:
                 "size": file_meta.get("bytes"),
                 "extracted_length": len(extracted_text),
                 "preview": (
-                    extracted_text[:500] + "..."
-                    if len(extracted_text) > 500
-                    else extracted_text
-                )
-            }
+                    extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text
+                ),
+            },
         }
 
     except (OSError, ValueError, TypeError, KeyError) as e:
         log.error("Error processing uploaded file: %s", e)
         # Fallback: just record the filename without content
         engine.add_memory(
-            "user",
-            f"{q_value}\n[Attached file: {file.filename} "
-            f"- processing failed: {str(e)}]"
+            "user", f"{q_value}\n[Attached file: {file.filename} " f"- processing failed: {str(e)}]"
         )
         engine.belief_state_manager.current_query = q_value
 
-        llm_response = await (
-            engine.belief_state_manager.generate_llm_response()
-        )
+        llm_response = await engine.belief_state_manager.generate_llm_response()
         if llm_response.get("text"):
             engine.add_memory("assistant", llm_response["text"])
 
@@ -306,6 +281,7 @@ async def debug_env(request: Request) -> dict[str, Any]:
     if env not in {"local", "development", "dev"}:
         # Check for admin token in production
         from capsule_brain.security.admin import require_admin_token
+
         try:
             require_admin_token(request.headers.get("x-admin-token"))
         except Exception:
@@ -313,9 +289,7 @@ async def debug_env(request: Request) -> dict[str, Any]:
     admin_val = os.getenv("ADMIN_TOKEN")
     return {
         "admin_token_set": bool(admin_val),
-        "admin_token_value": (
-            (admin_val[:10] + "...") if admin_val else "NOT_SET"
-        ),
+        "admin_token_value": ((admin_val[:10] + "...") if admin_val else "NOT_SET"),
         "deepseek_key_set": bool(os.getenv("DEEPSEEK_API_KEY")),
         "app_env": os.getenv("APP_ENV", "NOT_SET"),
         "app_profile": os.getenv("APP_PROFILE", "NOT_SET"),
@@ -374,10 +348,7 @@ class OracleRequest(BaseModel):
 
 
 @app.post("/oracle", dependencies=[Depends(require_admin_token)])
-async def oracle_control(
-    request: OracleRequest,
-    engine: EngineDep
-) -> dict[str, Any]:
+async def oracle_control(request: OracleRequest, engine: EngineDep) -> dict[str, Any]:
     """Oracle control endpoint for external system integration."""
     action = request.action.lower()
 
@@ -391,7 +362,7 @@ async def oracle_control(
             "action": "on",
             "message": "Oracle enabled - all systems active",
             "overseer_enabled": engine.overseer_enabled,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
     elif action == "off":
         # Disable all systems
@@ -402,10 +373,7 @@ async def oracle_control(
             "action": "off",
             "message": "Oracle disabled - systems in standby",
             "overseer_enabled": engine.overseer_enabled,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid action. Use 'on' or 'off'"
-        )
+        raise HTTPException(status_code=400, detail="Invalid action. Use 'on' or 'off'")

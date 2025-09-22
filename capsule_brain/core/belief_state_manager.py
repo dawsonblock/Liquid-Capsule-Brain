@@ -37,7 +37,7 @@ class BeliefStateManager:
         self.last_update = time.time()
 
         # Broadcast state update to GUI
-        if hasattr(self.engine, 'broadcast_belief_state_update'):
+        if hasattr(self.engine, "broadcast_belief_state_update"):
             self.engine.broadcast_belief_state_update()
 
     def synthesize_context_for_llm(self) -> tuple[str, str]:
@@ -45,8 +45,7 @@ class BeliefStateManager:
 
         # Get recent conversation history for better context
         recent_memories = []
-        if (hasattr(self.engine, 'memory') and
-                isinstance(self.engine.memory, list)):
+        if hasattr(self.engine, "memory") and isinstance(self.engine.memory, list):
             recent_memories = self.engine.memory[-6:]  # Last 6 exchanges
 
         context_lines = [
@@ -60,8 +59,8 @@ class BeliefStateManager:
         if recent_memories:
             context_lines.append("\nRecent conversation:")
             for memory in recent_memories:
-                role = memory.get('role', 'unknown')
-                content = memory.get('content', '')[:200]  # Limit length
+                role = memory.get("role", "unknown")
+                content = memory.get("content", "")[:200]  # Limit length
                 context_lines.append(f"{role}: {content}")
 
         system_prompt = (
@@ -74,6 +73,4 @@ class BeliefStateManager:
     async def generate_llm_response(self) -> dict[str, Any]:
         """Generate a response using DeepSeek V3."""
         context, system_prompt = self.synthesize_context_for_llm()
-        return await self.deepseek_client.generate_response(
-            context, system_prompt
-        )
+        return await self.deepseek_client.generate_response(context, system_prompt)

@@ -64,7 +64,7 @@ class AIOverseer:
             "How can principles from genetics inform evolutionary algorithms and optimization?",
             "What parallels exist between ecosystem dynamics and distributed system behavior?",
             "How do principles from acoustics apply to signal processing and communication?",
-            "What can we learn from plant growth patterns for adaptive system design?"
+            "What can we learn from plant growth patterns for adaptive system design?",
         ]
 
     @staticmethod
@@ -100,9 +100,11 @@ class AIOverseer:
                 recent_questions.add(question)
 
         # Find a question that hasn't been asked recently
-        for i in range(len(self.reasoning_questions)):
+        for _i in range(len(self.reasoning_questions)):
             question = self.reasoning_questions[self.question_rotation_index]
-            self.question_rotation_index = (self.question_rotation_index + 1) % len(self.reasoning_questions)
+            self.question_rotation_index = (self.question_rotation_index + 1) % len(
+                self.reasoning_questions
+            )
 
             if question not in recent_questions:
                 return question
@@ -133,10 +135,7 @@ class AIOverseer:
         current_time = time.time()
 
         # Clean up old question history (older than 1 hour)
-        self.asked_questions = [
-            (q, t) for q, t in self.asked_questions
-            if current_time - t < 3600
-        ]
+        self.asked_questions = [(q, t) for q, t in self.asked_questions if current_time - t < 3600]
 
         if phi < 1.0:
             # Select a question that hasn't been asked recently
@@ -151,10 +150,7 @@ class AIOverseer:
             else:
                 # If all questions have been asked recently, wait
                 log.info("All reasoning questions asked recently, skipping probe")
-                return {
-                    "action": "wait",
-                    "reason": "recent_questions_exhausted"
-                }
+                return {"action": "wait", "reason": "recent_questions_exhausted"}
 
         return {
             "action": "graph_synthesis",
@@ -197,7 +193,9 @@ class AIOverseer:
                 params=plan,
             )
 
-    async def run_supervisory_loop(self, num_cycles: int = 5, *, delay_seconds: float = 5.0) -> None:
+    async def run_supervisory_loop(
+        self, num_cycles: int = 5, *, delay_seconds: float = 5.0
+    ) -> None:
         for _ in range(num_cycles):
             try:
                 student_state = await self.assess_student_state()

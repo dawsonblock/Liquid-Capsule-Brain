@@ -22,7 +22,9 @@ def scrape_metrics(client: httpx.Client) -> dict[str, list[tuple[dict[str, str],
         if not stripped or stripped.startswith("#"):
             continue
 
-        match_with_labels = re.match(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)\{([^}]*)\}\s+([0-9.eE+-]+)$", stripped)
+        match_with_labels = re.match(
+            r"^([a-zA-Z_:][a-zA-Z0-9_:]*)\{([^}]*)\}\s+([0-9.eE+-]+)$", stripped
+        )
         if match_with_labels:
             name, labels_str, value = match_with_labels.groups()
             labels: dict[str, str] = {}
@@ -40,7 +42,9 @@ def scrape_metrics(client: httpx.Client) -> dict[str, list[tuple[dict[str, str],
     return metrics
 
 
-def counter_for(metrics: dict[str, list[tuple[dict[str, str], float]]], name: str, labels: dict[str, str]) -> float:
+def counter_for(
+    metrics: dict[str, list[tuple[dict[str, str], float]]], name: str, labels: dict[str, str]
+) -> float:
     total = 0.0
     for metric_labels, value in metrics.get(name, []):
         if all(metric_labels.get(key) == expected for key, expected in labels.items()):

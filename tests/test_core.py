@@ -17,6 +17,7 @@ def test_engine_background_tasks() -> None:
 
     asyncio.run(runner())
 
+
 def test_add_memory_and_edge() -> None:
     engine = CapsuleEngine()
     engine.add_memory("user", "hello")

@@ -59,7 +59,9 @@ class AdvancedDebugger:
 
             # Set up performance monitoring thresholds
             self.performance_monitor.set_threshold("response_time", warning=1.0, critical=5.0)
-            self.performance_monitor.set_threshold("memory_usage", warning=100*1024*1024, critical=500*1024*1024)
+            self.performance_monitor.set_threshold(
+                "memory_usage", warning=100 * 1024 * 1024, critical=500 * 1024 * 1024
+            )
 
             log.info("Advanced debugging system initialized")
         except Exception as e:
@@ -118,34 +120,33 @@ class AdvancedDebugger:
                             "status": r.status,
                             "message": r.message,
                             "component": r.component,
-                            "details": r.details
+                            "details": r.details,
                         }
                         for r in health_results
-                    ]
+                    ],
                 },
                 "performance": {
                     "overview": performance_overview,
                     "score": performance_score,
-                    "alerts": self.performance_monitor.get_alerts(hours=1)
+                    "alerts": self.performance_monitor.get_alerts(hours=1),
                 },
                 "errors": {
                     "summary": error_summary,
                     "health_score": error_health,
                     "recent_errors": self.error_tracker.get_errors_by_time_range(
-                        datetime.now() - timedelta(hours=1),
-                        datetime.now()
-                    )
+                        datetime.now() - timedelta(hours=1), datetime.now()
+                    ),
                 },
                 "memory": {
                     "stats": memory_stats,
                     "trend": memory_trend[-10:] if memory_trend else [],
                     "leaks": memory_leaks,
-                    "top_consumers": self.memory_monitor.get_top_memory_consumers()
+                    "top_consumers": self.memory_monitor.get_top_memory_consumers(),
                 },
                 "profiling": profiling_data,
                 "recommendations": self._generate_recommendations(
                     health_summary, performance_score, error_health, memory_leaks
-                )
+                ),
             }
 
             duration = time.time() - start_time
@@ -155,16 +156,13 @@ class AdvancedDebugger:
 
         except Exception as e:
             log.error(f"Comprehensive analysis failed: {e}")
-            return {
-                "error": str(e),
-                "timestamp": datetime.now().isoformat()
-            }
+            return {"error": str(e), "timestamp": datetime.now().isoformat()}
 
     def _calculate_overall_health(
         self,
         health_summary: dict[str, Any],
         performance_score: dict[str, Any],
-        error_health: dict[str, Any]
+        error_health: dict[str, Any],
     ) -> dict[str, Any]:
         """Calculate overall system health score."""
         # Health check score (0-100)
@@ -183,7 +181,7 @@ class AdvancedDebugger:
         error_score = error_health.get("score", 50)
 
         # Weighted average
-        overall_score = (health_score * 0.4 + perf_score * 0.3 + error_score * 0.3)
+        overall_score = health_score * 0.4 + perf_score * 0.3 + error_score * 0.3
 
         if overall_score >= 90:
             status = "excellent"
@@ -202,8 +200,8 @@ class AdvancedDebugger:
             "breakdown": {
                 "health_checks": health_score,
                 "performance": perf_score,
-                "errors": error_score
-            }
+                "errors": error_score,
+            },
         }
 
     def _generate_recommendations(
@@ -211,63 +209,71 @@ class AdvancedDebugger:
         health_summary: dict[str, Any],
         performance_score: dict[str, Any],
         error_health: dict[str, Any],
-        memory_leaks: list[dict[str, Any]]
+        memory_leaks: list[dict[str, Any]],
     ) -> list[dict[str, str]]:
         """Generate system improvement recommendations."""
         recommendations = []
 
         # Health check recommendations
         if health_summary["status"] == "critical":
-            recommendations.append({
-                "category": "health",
-                "priority": "high",
-                "title": "Critical Health Issues",
-                "description": f"System has {health_summary.get('critical', 0)} critical health issues that need immediate attention."
-            })
+            recommendations.append(
+                {
+                    "category": "health",
+                    "priority": "high",
+                    "title": "Critical Health Issues",
+                    "description": f"System has {health_summary.get('critical', 0)} critical health issues that need immediate attention.",
+                }
+            )
 
         # Performance recommendations
         if performance_score["score"] < 70:
-            recommendations.append({
-                "category": "performance",
-                "priority": "medium",
-                "title": "Performance Optimization",
-                "description": f"System performance score is {performance_score['score']}. Consider optimizing slow operations."
-            })
+            recommendations.append(
+                {
+                    "category": "performance",
+                    "priority": "medium",
+                    "title": "Performance Optimization",
+                    "description": f"System performance score is {performance_score['score']}. Consider optimizing slow operations.",
+                }
+            )
 
         # Error recommendations
         if error_health["score"] < 80:
-            recommendations.append({
-                "category": "errors",
-                "priority": "high",
-                "title": "Error Rate High",
-                "description": f"Error health score is {error_health['score']}. Review and fix frequent errors."
-            })
+            recommendations.append(
+                {
+                    "category": "errors",
+                    "priority": "high",
+                    "title": "Error Rate High",
+                    "description": f"Error health score is {error_health['score']}. Review and fix frequent errors.",
+                }
+            )
 
         # Memory leak recommendations
         if memory_leaks:
-            recommendations.append({
-                "category": "memory",
-                "priority": "high",
-                "title": "Memory Leaks Detected",
-                "description": f"Detected {len(memory_leaks)} potential memory leaks. Review object lifecycle management."
-            })
+            recommendations.append(
+                {
+                    "category": "memory",
+                    "priority": "high",
+                    "title": "Memory Leaks Detected",
+                    "description": f"Detected {len(memory_leaks)} potential memory leaks. Review object lifecycle management.",
+                }
+            )
 
         # Memory usage recommendations
         memory_stats = self.memory_monitor.get_memory_stats()
         if memory_stats.get("traced_current", 0) > 200 * 1024 * 1024:  # 200MB
-            recommendations.append({
-                "category": "memory",
-                "priority": "medium",
-                "title": "High Memory Usage",
-                "description": "Memory usage is high. Consider implementing memory optimization strategies."
-            })
+            recommendations.append(
+                {
+                    "category": "memory",
+                    "priority": "medium",
+                    "title": "High Memory Usage",
+                    "description": "Memory usage is high. Consider implementing memory optimization strategies.",
+                }
+            )
 
         return recommendations
 
     async def debug_issue(
-        self,
-        issue_description: str,
-        context: dict[str, Any] = None
+        self, issue_description: str, context: dict[str, Any] = None
     ) -> dict[str, Any]:
         """Debug a specific issue with comprehensive analysis."""
         if not self.enabled:
@@ -284,8 +290,7 @@ class AdvancedDebugger:
 
             # Get recent errors related to the issue
             recent_errors = self.error_tracker.get_errors_by_time_range(
-                datetime.now() - timedelta(hours=24),
-                datetime.now()
+                datetime.now() - timedelta(hours=24), datetime.now()
             )
 
             # Get performance metrics
@@ -308,7 +313,7 @@ class AdvancedDebugger:
                 "memory_snapshots": self.memory_monitor.get_memory_trend()[-2:],
                 "recommendations": self._generate_issue_recommendations(
                     issue_description, health_results, recent_errors
-                )
+                ),
             }
 
             return debug_result
@@ -318,14 +323,11 @@ class AdvancedDebugger:
             return {
                 "error": str(e),
                 "issue_description": issue_description,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     def _generate_issue_recommendations(
-        self,
-        issue_description: str,
-        health_results: list[Any],
-        recent_errors: list[dict[str, Any]]
+        self, issue_description: str, health_results: list[Any], recent_errors: list[dict[str, Any]]
     ) -> list[dict[str, str]]:
         """Generate specific recommendations for an issue."""
         recommendations = []
@@ -333,40 +335,48 @@ class AdvancedDebugger:
         # Analyze health results
         critical_issues = [r for r in health_results if r.status == "critical"]
         if critical_issues:
-            recommendations.append({
-                "priority": "critical",
-                "title": "Address Critical Health Issues",
-                "description": f"Found {len(critical_issues)} critical health issues that may be related to the problem."
-            })
+            recommendations.append(
+                {
+                    "priority": "critical",
+                    "title": "Address Critical Health Issues",
+                    "description": f"Found {len(critical_issues)} critical health issues that may be related to the problem.",
+                }
+            )
 
         # Analyze recent errors
-        error_patterns = {}
+        error_patterns: dict[str, int] = {}
         for error in recent_errors:
             error_type = error.get("error_type", "Unknown")
             error_patterns[error_type] = error_patterns.get(error_type, 0) + 1
 
         if error_patterns:
             most_common_error = max(error_patterns.items(), key=lambda x: x[1])
-            recommendations.append({
-                "priority": "high",
-                "title": "Investigate Common Errors",
-                "description": f"Most common error type: {most_common_error[0]} ({most_common_error[1]} occurrences). This may be related to the issue."
-            })
+            recommendations.append(
+                {
+                    "priority": "high",
+                    "title": "Investigate Common Errors",
+                    "description": f"Most common error type: {most_common_error[0]} ({most_common_error[1]} occurrences). This may be related to the issue.",
+                }
+            )
 
         # Generic recommendations based on issue description
         if "memory" in issue_description.lower():
-            recommendations.append({
-                "priority": "medium",
-                "title": "Memory Analysis",
-                "description": "Run memory leak detection and analyze memory usage patterns."
-            })
+            recommendations.append(
+                {
+                    "priority": "medium",
+                    "title": "Memory Analysis",
+                    "description": "Run memory leak detection and analyze memory usage patterns.",
+                }
+            )
 
         if "performance" in issue_description.lower() or "slow" in issue_description.lower():
-            recommendations.append({
-                "priority": "medium",
-                "title": "Performance Profiling",
-                "description": "Use the profiler to identify performance bottlenecks."
-            })
+            recommendations.append(
+                {
+                    "priority": "medium",
+                    "title": "Performance Profiling",
+                    "description": "Use the profiler to identify performance bottlenecks.",
+                }
+            )
 
         return recommendations
 
@@ -386,8 +396,8 @@ class AdvancedDebugger:
             "system_info": {
                 "python_version": sys.version,
                 "platform": sys.platform,
-                "working_directory": os.getcwd()
-            }
+                "working_directory": os.getcwd(),
+            },
         }
 
     def export_debugging_data(self, filepath: str) -> None:
@@ -399,17 +409,17 @@ class AdvancedDebugger:
             "session_info": {
                 "start_time": self.session_start.isoformat(),
                 "duration": (datetime.now() - self.session_start).total_seconds(),
-                "enabled": self.enabled
+                "enabled": self.enabled,
             },
             "health_data": self.health_checker.get_health_summary(),
             "performance_data": self.performance_monitor.get_performance_overview(),
             "error_data": self.error_tracker.get_error_summary(),
             "memory_data": self.memory_monitor.get_memory_stats(),
             "profiling_data": self.profiler.get_profiling_summary(),
-            "export_timestamp": datetime.now().isoformat()
+            "export_timestamp": datetime.now().isoformat(),
         }
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
         log.info(f"Debugging data exported to {filepath}")
@@ -442,8 +452,8 @@ class AdvancedDebugger:
                 "memory_monitor": self.memory_monitor.get_summary(),
                 "error_tracker": self.error_tracker.get_error_summary(),
                 "performance_monitor": self.performance_monitor.get_performance_score(),
-                "health_checker": self.health_checker.get_health_summary()
-            }
+                "health_checker": self.health_checker.get_health_summary(),
+            },
         }
 
 

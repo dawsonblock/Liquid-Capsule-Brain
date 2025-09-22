@@ -61,11 +61,11 @@ endstream
 endobj
 xref
 0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000206 00000 n 
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000206 00000 n
 trailer
 <<
 /Size 5
@@ -107,13 +107,22 @@ async def test_pdf_upload_to_server() -> bool:
 
     try:
         # Start server in background
-        process = subprocess.Popen([
-            sys.executable, "-m", "uvicorn",
-            "capsule_brain.api.server:app",
-            "--host", "127.0.0.1",
-            "--port", "8002",  # Use different port
-            "--log-level", "error"
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "capsule_brain.api.server:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8002",  # Use different port
+                "--log-level",
+                "error",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
         # Wait for server to start
         await asyncio.sleep(3)
@@ -121,26 +130,19 @@ async def test_pdf_upload_to_server() -> bool:
         # Test PDF upload
         pdf_content = create_test_pdf()
 
-        files = {
-            'file': ('test.pdf', pdf_content, 'application/pdf')
-        }
-        data = {
-            'q': 'What is this document about?'
-        }
+        files = {"file": ("test.pdf", pdf_content, "application/pdf")}
+        data = {"q": "What is this document about?"}
 
         try:
             response = requests.post(
-                "http://127.0.0.1:8002/ask_with_document",
-                files=files,
-                data=data,
-                timeout=10
+                "http://127.0.0.1:8002/ask_with_document", files=files, data=data, timeout=10
             )
 
             if response.status_code == 200:
                 result = response.json()
                 print(f"Upload response: {json.dumps(result, indent=2)[:500]}...")
 
-                if result.get('ack') and 'file_processed' in result:
+                if result.get("ack") and "file_processed" in result:
                     print("✅ PDF upload to server successful")
                     success = True
                 else:
@@ -176,7 +178,7 @@ def test_zip_extraction() -> bool:
 
         # Create a ZIP file with text content
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
             zip_file.writestr("test1.txt", "This is the first file in the ZIP.")
             zip_file.writestr("test2.txt", "This is the second file in the ZIP.")
             zip_file.writestr("subfolder/test3.txt", "This is in a subfolder.")
@@ -213,7 +215,7 @@ def main():
     for test_name, test_func in tests:
         print(f"\n{'='*50}")
         print(f"Running: {test_name}")
-        print('='*50)
+        print("=" * 50)
 
         try:
             result = test_func()
@@ -225,7 +227,7 @@ def main():
     # Run async test
     print(f"\n{'='*50}")
     print("Running: PDF Upload to Server")
-    print('='*50)
+    print("=" * 50)
     try:
         result = asyncio.run(test_pdf_upload_to_server())
         results.append(("PDF Upload to Server", result))
@@ -236,7 +238,7 @@ def main():
     # Summary
     print(f"\n{'='*50}")
     print("PDF INGESTION TEST SUMMARY")
-    print('='*50)
+    print("=" * 50)
 
     passed = 0
     total = len(results)

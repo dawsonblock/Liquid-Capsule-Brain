@@ -1,27 +1,131 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "capsule-brain-supreme-agi"
 version = "1.0.1"
+description = "Advanced AI system with comprehensive debugging and monitoring capabilities"
+readme = "README.md"
 requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Capsule Brain Team", email = "team@capsulebrain.ai"},
+]
+keywords = ["ai", "debugging", "monitoring", "fastapi", "python"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Monitoring",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "fastapi==0.110.0",
+    "uvicorn[standard]==0.27.1",
+    "uvloop==0.19.0",
+    "httpx==0.27.0",
+    "networkx==3.2.1",
+    "numpy==1.26.4",
+    "pydantic==2.5.0",
+    "pyyaml==6.0.1",
+    "websockets==12.0",
+    "python-multipart==0.0.6",
+    "pypdf==4.2.0",
+    "openai==1.54.3",
+    "python-dotenv==1.0.1",
+    "prometheus_client==0.20.0",
+    "prometheus-fastapi-instrumentator==7.0.0",
+    "tomli==2.0.1",
+]
 
 [project.optional-dependencies]
 ml = ["torch==2.2.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "bandit>=1.7.0",
+    "safety>=2.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "httpx>=0.27.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.20.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/capsulebrain/capsule-brain"
+Documentation = "https://capsulebrain.readthedocs.io"
+Repository = "https://github.com/capsulebrain/capsule-brain.git"
+Issues = "https://github.com/capsulebrain/capsule-brain/issues"
+
+[project.scripts]
+capsule-brain = "launch_capsule_brain:main"
 
 [tool.black]
 line-length = 100
-target-version = ["py311"]
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*" = ["B011"]
 
 [tool.isort]
 profile = "black"
 line_length = 100
-
-[tool.ruff]
-line-length = 100
-exclude = ["grafana/", "prometheus/", "k8s/", "docs/"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "W"]
-ignore = ["E501"]  # handled by black
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
 
 [tool.mypy]
 python_version = "3.11"
@@ -29,18 +133,66 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
 no_implicit_optional = true
-ignore_missing_imports = true
-exclude = "(grafana|prometheus|k8s|docs)/"
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
 
-[tool.coverage.run]
-branch = true
-source = ["capsule_brain"]
-omit = ["*/__init__.py"]
-[tool.coverage.report]
-show_missing = true
-skip_covered = true
-precision = 2
+[[tool.mypy.overrides]]
+module = [
+    "psutil.*",
+    "prometheus_client.*",
+    "prometheus_fastapi_instrumentator.*",
+    "pypdf.*",
+    "openai.*",
+    "requests.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-asyncio_default_fixture_loop_scope = "function"
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["capsule_brain"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "test_*"]
+skips = ["B101", "B601"]
+
+[tool.safety]
+output = "json"

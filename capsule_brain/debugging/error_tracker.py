@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 class ErrorSeverity(Enum):
     """Error severity levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -21,6 +22,7 @@ class ErrorSeverity(Enum):
 
 class ErrorCategory(Enum):
     """Error categories for classification."""
+
     SYSTEM = "system"
     API = "api"
     DATABASE = "database"
@@ -42,9 +44,9 @@ class ErrorTracker:
         self.error_rates: dict[str, float] = {}
         self.alert_thresholds = {
             ErrorSeverity.CRITICAL: 1,  # Alert immediately
-            ErrorSeverity.HIGH: 5,     # Alert after 5 occurrences
+            ErrorSeverity.HIGH: 5,  # Alert after 5 occurrences
             ErrorSeverity.MEDIUM: 20,  # Alert after 20 occurrences
-            ErrorSeverity.LOW: 100     # Alert after 100 occurrences
+            ErrorSeverity.LOW: 100,  # Alert after 100 occurrences
         }
         self.rate_window = timedelta(minutes=5)  # 5-minute window for rate calculation
 
@@ -56,7 +58,7 @@ class ErrorTracker:
         category: ErrorCategory = ErrorCategory.UNKNOWN,
         user_id: str = None,
         request_id: str = None,
-        component: str = None
+        component: str = None,
     ) -> str:
         """Track an error with full context."""
         error_id = self._generate_error_id()
@@ -74,14 +76,14 @@ class ErrorTracker:
             "context": context or {},
             "traceback": traceback.format_exc(),
             "stack_trace": self._get_stack_trace(),
-            "system_info": self._get_system_info()
+            "system_info": self._get_system_info(),
         }
 
         self.errors.append(error_data)
 
         # Keep only recent errors
         if len(self.errors) > self.max_errors:
-            self.errors = self.errors[-self.max_errors:]
+            self.errors = self.errors[-self.max_errors :]
 
         # Update patterns and rates
         self._update_error_patterns(error_data)
@@ -111,12 +113,14 @@ class ErrorTracker:
             frames = traceback.extract_tb(exc_tb)
 
         for frame in frames:
-            stack.append({
-                "filename": frame.filename,
-                "line_number": frame.lineno,
-                "function_name": frame.name,
-                "code": frame.line
-            })
+            stack.append(
+                {
+                    "filename": frame.filename,
+                    "line_number": frame.lineno,
+                    "function_name": frame.name,
+                    "code": frame.line,
+                }
+            )
         return stack
 
     def _get_system_info(self) -> dict[str, Any]:
@@ -125,7 +129,7 @@ class ErrorTracker:
             "python_version": sys.version,
             "platform": sys.platform,
             "executable": sys.executable,
-            "argv": sys.argv
+            "argv": sys.argv,
         }
 
     def _update_error_patterns(self, error_data: dict[str, Any]) -> None:
@@ -139,7 +143,7 @@ class ErrorTracker:
                 "last_seen": error_data["timestamp"],
                 "severity_counts": {s.value: 0 for s in ErrorSeverity},
                 "components": set(),
-                "error_messages": set()
+                "error_messages": set(),
             }
 
         pattern = self.error_patterns[pattern_key]
@@ -156,12 +160,11 @@ class ErrorTracker:
 
         # Count errors in the rate window
         recent_errors = [
-            e for e in self.errors
-            if datetime.fromisoformat(e["timestamp"]) > cutoff_time
+            e for e in self.errors if datetime.fromisoformat(e["timestamp"]) > cutoff_time
         ]
 
         # Calculate rates by component and severity
-        for component in set(e["component"] for e in recent_errors):
+        for component in {e["component"] for e in recent_errors}:
             component_errors = [e for e in recent_errors if e["component"] == component]
             rate = len(component_errors) / self.rate_window.total_seconds() * 60  # per minute
             self.error_rates[f"{component}_total"] = rate
@@ -174,21 +177,26 @@ class ErrorTracker:
     def _check_alerts(self, error_data: dict[str, Any]) -> None:
         """Check if error should trigger an alert."""
         severity = ErrorSeverity(error_data["severity"])
-        threshold = self.alert_thresholds.get(severity, float('inf'))
+        threshold = self.alert_thresholds.get(severity, float("inf"))
 
         # Count recent errors of this severity
         now = datetime.now()
         cutoff_time = now - self.rate_window
         recent_same_severity = [
-            e for e in self.errors
-            if (datetime.fromisoformat(e["timestamp"]) > cutoff_time and
-                e["severity"] == severity.value)
+            e
+            for e in self.errors
+            if (
+                datetime.fromisoformat(e["timestamp"]) > cutoff_time
+                and e["severity"] == severity.value
+            )
         ]
 
         if len(recent_same_severity) >= threshold:
             self._trigger_alert(error_data, recent_same_severity)
 
-    def _trigger_alert(self, error_data: dict[str, Any], recent_errors: list[dict[str, Any]]) -> None:
+    def _trigger_alert(
+        self, error_data: dict[str, Any], recent_errors: list[dict[str, Any]]
+    ) -> None:
         """Trigger an alert for error threshold breach."""
         alert = {
             "timestamp": datetime.now().isoformat(),
@@ -196,7 +204,7 @@ class ErrorTracker:
             "component": error_data["component"],
             "error_count": len(recent_errors),
             "threshold": self.alert_thresholds.get(ErrorSeverity(error_data["severity"]), 0),
-            "recent_errors": recent_errors[-5:]  # Last 5 errors
+            "recent_errors": recent_errors[-5:],  # Last 5 errors
         }
 
         log.critical(f"ERROR ALERT: {alert}")
@@ -212,18 +220,14 @@ class ErrorTracker:
         last_24h = now - timedelta(hours=24)
 
         recent_errors = [
-            e for e in self.errors
-            if datetime.fromisoformat(e["timestamp"]) > last_hour
+            e for e in self.errors if datetime.fromisoformat(e["timestamp"]) > last_hour
         ]
 
-        daily_errors = [
-            e for e in self.errors
-            if datetime.fromisoformat(e["timestamp"]) > last_24h
-        ]
+        daily_errors = [e for e in self.errors if datetime.fromisoformat(e["timestamp"]) > last_24h]
 
-        severity_counts = {}
-        category_counts = {}
-        component_counts = {}
+        severity_counts: dict[str, int] = {}
+        category_counts: dict[str, int] = {}
+        component_counts: dict[str, int] = {}
 
         for error in self.errors:
             severity = error["severity"]
@@ -242,22 +246,24 @@ class ErrorTracker:
             "category_breakdown": category_counts,
             "component_breakdown": component_counts,
             "error_rates": self.error_rates,
-            "top_patterns": self._get_top_error_patterns()
+            "top_patterns": self._get_top_error_patterns(),
         }
 
     def _get_top_error_patterns(self, limit: int = 10) -> list[dict[str, Any]]:
         """Get top error patterns by frequency."""
         patterns = []
         for pattern_key, pattern_data in self.error_patterns.items():
-            patterns.append({
-                "pattern": pattern_key,
-                "count": pattern_data["count"],
-                "first_seen": pattern_data["first_seen"],
-                "last_seen": pattern_data["last_seen"],
-                "severity_breakdown": pattern_data["severity_counts"],
-                "components": list(pattern_data["components"]),
-                "sample_messages": list(pattern_data["error_messages"])[:3]
-            })
+            patterns.append(
+                {
+                    "pattern": pattern_key,
+                    "count": pattern_data["count"],
+                    "first_seen": pattern_data["first_seen"],
+                    "last_seen": pattern_data["last_seen"],
+                    "severity_breakdown": pattern_data["severity_counts"],
+                    "components": list(pattern_data["components"]),
+                    "sample_messages": list(pattern_data["error_messages"])[:3],
+                }
+            )
 
         return sorted(patterns, key=lambda x: x["count"], reverse=True)[:limit]
 
@@ -270,13 +276,12 @@ class ErrorTracker:
         return [e for e in self.errors if e["severity"] == severity.value]
 
     def get_errors_by_time_range(
-        self,
-        start_time: datetime,
-        end_time: datetime
+        self, start_time: datetime, end_time: datetime
     ) -> list[dict[str, Any]]:
         """Get errors within a time range."""
         return [
-            e for e in self.errors
+            e
+            for e in self.errors
             if start_time <= datetime.fromisoformat(e["timestamp"]) <= end_time
         ]
 
@@ -298,11 +303,7 @@ class ErrorTracker:
         # Convert to sorted list
         trends = sorted(hourly_counts.items())
 
-        return {
-            "total_errors": trends,
-            "time_range": f"{hours} hours",
-            "data_points": len(trends)
-        }
+        return {"total_errors": trends, "time_range": f"{hours} hours", "data_points": len(trends)}
 
     def clear_old_errors(self, days: int = 7) -> int:
         """Clear errors older than specified days."""
@@ -310,8 +311,7 @@ class ErrorTracker:
         original_count = len(self.errors)
 
         self.errors = [
-            e for e in self.errors
-            if datetime.fromisoformat(e["timestamp"]) > cutoff_time
+            e for e in self.errors if datetime.fromisoformat(e["timestamp"]) > cutoff_time
         ]
 
         cleared_count = original_count - len(self.errors)
@@ -320,13 +320,18 @@ class ErrorTracker:
 
     def export_errors(self, filepath: str) -> None:
         """Export errors to JSON file."""
-        with open(filepath, 'w') as f:
-            json.dump({
-                "errors": self.errors,
-                "patterns": self.error_patterns,
-                "rates": self.error_rates,
-                "export_timestamp": datetime.now().isoformat()
-            }, f, indent=2, default=str)
+        with open(filepath, "w") as f:
+            json.dump(
+                {
+                    "errors": self.errors,
+                    "patterns": self.error_patterns,
+                    "rates": self.error_rates,
+                    "export_timestamp": datetime.now().isoformat(),
+                },
+                f,
+                indent=2,
+                default=str,
+            )
 
         log.info(f"Errors exported to {filepath}")
 
@@ -339,8 +344,7 @@ class ErrorTracker:
         last_hour = now - timedelta(hours=1)
 
         recent_errors = [
-            e for e in self.errors
-            if datetime.fromisoformat(e["timestamp"]) > last_hour
+            e for e in self.errors if datetime.fromisoformat(e["timestamp"]) > last_hour
         ]
 
         # Calculate penalty based on error severity and frequency
@@ -371,7 +375,7 @@ class ErrorTracker:
             "score": score,
             "status": status,
             "recent_errors": len(recent_errors),
-            "penalty": penalty
+            "penalty": penalty,
         }
 
 
@@ -384,12 +388,10 @@ def track_error(
     context: dict[str, Any] = None,
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
     category: ErrorCategory = ErrorCategory.UNKNOWN,
-    **kwargs
+    **kwargs,
 ) -> str:
     """Convenience function to track an error."""
-    return error_tracker.track_error(
-        error, context, severity, category, **kwargs
-    )
+    return error_tracker.track_error(error, context, severity, category, **kwargs)
 
 
 def track_api_error(error: Exception, endpoint: str, **kwargs) -> str:
@@ -400,7 +402,7 @@ def track_api_error(error: Exception, endpoint: str, **kwargs) -> str:
         severity=ErrorSeverity.MEDIUM,
         category=ErrorCategory.API,
         component="api",
-        **kwargs
+        **kwargs,
     )
 
 
@@ -412,5 +414,5 @@ def track_system_error(error: Exception, component: str, **kwargs) -> str:
         severity=ErrorSeverity.HIGH,
         category=ErrorCategory.SYSTEM,
         component=component,
-        **kwargs
+        **kwargs,
     )

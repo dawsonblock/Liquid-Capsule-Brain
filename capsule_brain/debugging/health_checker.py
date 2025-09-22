@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import traceback
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -18,20 +19,21 @@ log = logging.getLogger(__name__)
 @dataclass
 class HealthCheck:
     """Health check result data structure."""
+
     name: str
     status: str  # "healthy", "warning", "critical", "unknown"
     message: str
     timestamp: datetime
     component: str
-    details: dict[str, Any] = None
+    details: dict[str, Any] | None = None
 
 
 class HealthChecker:
     """Comprehensive health checking and system monitoring."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.checks: list[HealthCheck] = []
-        self.check_functions: dict[str, callable] = {}
+        self.check_functions: dict[str, Callable] = {}
         self.auto_check_interval = 60  # seconds
         self.auto_check_task: asyncio.Task | None = None
         self.is_running = False
@@ -50,7 +52,7 @@ class HealthChecker:
             "network_connectivity": self._check_network_connectivity,
             "process_health": self._check_process_health,
             "file_system": self._check_file_system,
-            "dependencies": self._check_dependencies
+            "dependencies": self._check_dependencies,
         }
 
     async def run_all_checks(self) -> list[HealthCheck]:
@@ -68,10 +70,7 @@ class HealthChecker:
                     message=f"Health check failed: {str(e)}",
                     timestamp=datetime.now(),
                     component="health_checker",
-                    details={
-                        "error": str(e),
-                        "traceback": traceback.format_exc()
-                    }
+                    details={"error": str(e), "traceback": traceback.format_exc()},
                 )
                 results.append(error_result)
                 log.error(f"Health check {check_name} failed: {e}")
@@ -89,7 +88,7 @@ class HealthChecker:
         try:
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
+            disk = psutil.disk_usage("/")
 
             # Determine status based on resource usage
             if cpu_percent > 90 or memory.percent > 90 or disk.percent > 90:
@@ -113,8 +112,8 @@ class HealthChecker:
                     "memory_percent": memory.percent,
                     "memory_available": memory.available,
                     "disk_percent": disk.percent,
-                    "disk_free": disk.free
-                }
+                    "disk_free": disk.free,
+                },
             )
         except Exception as e:
             return HealthCheck(
@@ -122,7 +121,7 @@ class HealthChecker:
                 status="critical",
                 message=f"Failed to check system resources: {str(e)}",
                 timestamp=datetime.now(),
-                component="system"
+                component="system",
             )
 
     async def _check_python_environment(self) -> HealthCheck:
@@ -132,8 +131,8 @@ class HealthChecker:
             python_path = sys.executable
 
             # Check if we're in a virtual environment
-            in_venv = hasattr(sys, 'real_prefix') or (
-                hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix
+            in_venv = hasattr(sys, "real_prefix") or (
+                hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
             )
 
             # Check Python version compatibility
@@ -154,8 +153,8 @@ class HealthChecker:
                     "version": f"{python_version.major}.{python_version.minor}.{python_version.micro}",
                     "executable": python_path,
                     "in_virtual_env": in_venv,
-                    "platform": sys.platform
-                }
+                    "platform": sys.platform,
+                },
             )
         except Exception as e:
             return HealthCheck(
@@ -163,13 +162,13 @@ class HealthChecker:
                 status="critical",
                 message=f"Failed to check Python environment: {str(e)}",
                 timestamp=datetime.now(),
-                component="python"
+                component="python",
             )
 
     async def _check_disk_space(self) -> HealthCheck:
         """Check disk space availability."""
         try:
-            disk = psutil.disk_usage('/')
+            disk = psutil.disk_usage("/")
             free_gb = disk.free / (1024**3)
             total_gb = disk.total / (1024**3)
             percent_free = (disk.free / disk.total) * 100
@@ -194,8 +193,8 @@ class HealthChecker:
                     "free_gb": round(free_gb, 2),
                     "total_gb": round(total_gb, 2),
                     "percent_free": round(percent_free, 2),
-                    "used_gb": round((disk.used / (1024**3)), 2)
-                }
+                    "used_gb": round((disk.used / (1024**3)), 2),
+                },
             )
         except Exception as e:
             return HealthCheck(
@@ -203,7 +202,7 @@ class HealthChecker:
                 status="critical",
                 message=f"Failed to check disk space: {str(e)}",
                 timestamp=datetime.now(),
-                component="storage"
+                component="storage",
             )
 
     async def _check_memory_usage(self) -> HealthCheck:
@@ -238,8 +237,8 @@ class HealthChecker:
                     "percent_used": memory_percent,
                     "available_gb": round(memory.available / (1024**3), 2),
                     "swap_total_gb": round(swap.total / (1024**3), 2),
-                    "swap_used_gb": round(swap.used / (1024**3), 2)
-                }
+                    "swap_used_gb": round(swap.used / (1024**3), 2),
+                },
             )
         except Exception as e:
             return HealthCheck(
@@ -247,7 +246,7 @@ class HealthChecker:
                 status="critical",
                 message=f"Failed to check memory usage: {str(e)}",
                 timestamp=datetime.now(),
-                component="memory"
+                component="memory",
             )
 
     async def _check_cpu_usage(self) -> HealthCheck:
@@ -255,7 +254,7 @@ class HealthChecker:
         try:
             cpu_percent = psutil.cpu_percent(interval=1)
             cpu_count = psutil.cpu_count()
-            load_avg = psutil.getloadavg() if hasattr(psutil, 'getloadavg') else None
+            load_avg = psutil.getloadavg() if hasattr(psutil, "getloadavg") else None
 
             if cpu_percent > 90:
                 status = "critical"
@@ -276,8 +275,8 @@ class HealthChecker:
                 details={
                     "cpu_percent": cpu_percent,
                     "cpu_count": cpu_count,
-                    "load_average": load_avg
-                }
+                    "load_average": load_avg,
+                },
             )
         except Exception as e:
             return HealthCheck(
@@ -285,7 +284,7 @@ class HealthChecker:
                 status="critical",
                 message=f"Failed to check CPU usage: {str(e)}",
                 timestamp=datetime.now(),
-                component="cpu"
+                component="cpu",
             )
 
     async def _check_network_connectivity(self) -> HealthCheck:
@@ -308,10 +307,7 @@ class HealthChecker:
                 message="Network connectivity normal",
                 timestamp=datetime.now(),
                 component="network",
-                details={
-                    "dns_resolution": True,
-                    "tcp_connectivity": True
-                }
+                details={"dns_resolution": True, "tcp_connectivity": True},
             )
         except Exception as e:
             return HealthCheck(
@@ -320,7 +316,7 @@ class HealthChecker:
                 message=f"Network connectivity issues: {str(e)}",
                 timestamp=datetime.now(),
                 component="network",
-                details={"error": str(e)}
+                details={"error": str(e)},
             )
 
     async def _check_process_health(self) -> HealthCheck:
@@ -350,8 +346,8 @@ class HealthChecker:
                     "memory_rss": memory_info.rss,
                     "memory_vms": memory_info.vms,
                     "num_threads": process.num_threads(),
-                    "create_time": datetime.fromtimestamp(process.create_time()).isoformat()
-                }
+                    "create_time": datetime.fromtimestamp(process.create_time()).isoformat(),
+                },
             )
         except Exception as e:
             return HealthCheck(
@@ -359,7 +355,7 @@ class HealthChecker:
                 status="critical",
                 message=f"Failed to check process health: {str(e)}",
                 timestamp=datetime.now(),
-                component="process"
+                component="process",
             )
 
     async def _check_file_system(self) -> HealthCheck:
@@ -368,7 +364,7 @@ class HealthChecker:
             # Check if we can read/write to current directory
             test_file = "health_check_test.tmp"
 
-            with open(test_file, 'w') as f:
+            with open(test_file, "w") as f:
                 f.write("health check test")
 
             with open(test_file) as f:
@@ -389,10 +385,7 @@ class HealthChecker:
                 message=message,
                 timestamp=datetime.now(),
                 component="filesystem",
-                details={
-                    "read_write_test": True,
-                    "current_directory": os.getcwd()
-                }
+                details={"read_write_test": True, "current_directory": os.getcwd()},
             )
         except Exception as e:
             return HealthCheck(
@@ -400,19 +393,13 @@ class HealthChecker:
                 status="critical",
                 message=f"File system check failed: {str(e)}",
                 timestamp=datetime.now(),
-                component="filesystem"
+                component="filesystem",
             )
 
     async def _check_dependencies(self) -> HealthCheck:
         """Check critical dependencies."""
         try:
-            critical_deps = [
-                "fastapi",
-                "uvicorn",
-                "openai",
-                "pydantic",
-                "psutil"
-            ]
+            critical_deps = ["fastapi", "uvicorn", "openai", "pydantic", "psutil"]
 
             missing_deps = []
             for dep in critical_deps:
@@ -436,8 +423,8 @@ class HealthChecker:
                 component="dependencies",
                 details={
                     "checked_dependencies": critical_deps,
-                    "missing_dependencies": missing_deps
-                }
+                    "missing_dependencies": missing_deps,
+                },
             )
         except Exception as e:
             return HealthCheck(
@@ -445,7 +432,7 @@ class HealthChecker:
                 status="critical",
                 message=f"Failed to check dependencies: {str(e)}",
                 timestamp=datetime.now(),
-                component="dependencies"
+                component="dependencies",
             )
 
     def get_health_summary(self) -> dict[str, Any]:
@@ -454,9 +441,12 @@ class HealthChecker:
             return {"status": "unknown", "message": "No health checks performed"}
 
         # Get most recent check for each type
-        latest_checks = {}
+        latest_checks: dict[str, HealthCheck] = {}
         for check in self.checks:
-            if check.name not in latest_checks or check.timestamp > latest_checks[check.name].timestamp:
+            if (
+                check.name not in latest_checks
+                or check.timestamp > latest_checks[check.name].timestamp
+            ):
                 latest_checks[check.name] = check
 
         # Determine overall status
@@ -487,10 +477,10 @@ class HealthChecker:
                     "status": c.status,
                     "message": c.message,
                     "component": c.component,
-                    "timestamp": c.timestamp.isoformat()
+                    "timestamp": c.timestamp.isoformat(),
                 }
                 for c in latest_checks.values()
-            ]
+            ],
         }
 
     async def start_auto_checks(self) -> None:
@@ -532,10 +522,7 @@ class HealthChecker:
         """Get recent health checks."""
         cutoff_time = datetime.now() - timedelta(hours=hours)
 
-        recent_checks = [
-            c for c in self.checks
-            if c.timestamp > cutoff_time
-        ]
+        recent_checks = [c for c in self.checks if c.timestamp > cutoff_time]
 
         return [
             {
@@ -544,7 +531,7 @@ class HealthChecker:
                 "message": c.message,
                 "timestamp": c.timestamp.isoformat(),
                 "component": c.component,
-                "details": c.details
+                "details": c.details,
             }
             for c in recent_checks
         ]
@@ -559,15 +546,15 @@ class HealthChecker:
                     "message": c.message,
                     "timestamp": c.timestamp.isoformat(),
                     "component": c.component,
-                    "details": c.details
+                    "details": c.details,
                 }
                 for c in self.checks
             ],
             "summary": self.get_health_summary(),
-            "export_timestamp": datetime.now().isoformat()
+            "export_timestamp": datetime.now().isoformat(),
         }
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
         log.info(f"Health data exported to {filepath}")

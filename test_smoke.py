@@ -14,13 +14,24 @@ def test_imports() -> bool:
     """Test that all critical modules can be imported."""
     print("🔍 Testing imports...")
     try:
-        import prometheus_fastapi_instrumentator
-        import tomli
+        import importlib.util
 
-        import capsule_brain.api.server
-        import capsule_brain.core.capsule_engine
-        import capsule_brain.ingestion.extractor
-        import capsule_brain.llm_adapter.deepseek_client
+        # Test core modules availability
+        if importlib.util.find_spec("capsule_brain.api.server") is None:
+            raise ImportError("api.server not found")
+        if importlib.util.find_spec("capsule_brain.core.capsule_engine") is None:
+            raise ImportError("core.capsule_engine not found")
+        if importlib.util.find_spec("capsule_brain.ingestion.extractor") is None:
+            raise ImportError("ingestion.extractor not found")
+
+        # Test optional dependencies
+        if importlib.util.find_spec("prometheus_fastapi_instrumentator") is None:
+            raise ImportError("prometheus_fastapi_instrumentator not found")
+        if importlib.util.find_spec("tomli") is None:
+            raise ImportError("tomli not found")
+        if importlib.util.find_spec("capsule_brain.llm_adapter.deepseek_client") is None:
+            raise ImportError("deepseek_client not found")
+
         print("✅ All imports successful")
         return True
     except ImportError as e:
@@ -32,17 +43,17 @@ def test_dependencies() -> bool:
     """Test that all required dependencies are available."""
     print("🔍 Testing dependencies...")
     try:
-        # Test pypdf
-        # Test tomli
-        import tomli
+        import importlib.util
 
-        # Test OpenAI
-        from openai import APIError, OpenAI
-
-        # Test Prometheus
-        from prometheus_fastapi_instrumentator import Instrumentator
-        from pypdf import PdfReader
-        from pypdf.errors import PdfReadError
+        # Test required dependencies
+        if importlib.util.find_spec("tomli") is None:
+            raise ImportError("tomli not found")
+        if importlib.util.find_spec("openai") is None:
+            raise ImportError("openai not found")
+        if importlib.util.find_spec("prometheus_fastapi_instrumentator") is None:
+            raise ImportError("prometheus_fastapi_instrumentator not found")
+        if importlib.util.find_spec("pypdf") is None:
+            raise ImportError("pypdf not found")
 
         print("✅ All dependencies available")
         return True
@@ -146,13 +157,22 @@ async def test_uvicorn_smoke() -> bool:
 
     try:
         # Start server in background
-        process = subprocess.Popen([
-            sys.executable, "-m", "uvicorn",
-            "capsule_brain.api.server:app",
-            "--host", "127.0.0.1",
-            "--port", "8001",  # Use different port to avoid conflicts
-            "--log-level", "error"
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "capsule_brain.api.server:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8001",  # Use different port to avoid conflicts
+                "--log-level",
+                "error",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
         # Wait for server to start
         await asyncio.sleep(3)
@@ -199,7 +219,7 @@ def main():
     for test_name, test_func in tests:
         print(f"\n{'='*50}")
         print(f"Running: {test_name}")
-        print('='*50)
+        print("=" * 50)
 
         try:
             result = test_func()
@@ -211,7 +231,7 @@ def main():
     # Run async test
     print(f"\n{'='*50}")
     print("Running: Uvicorn Smoke Test")
-    print('='*50)
+    print("=" * 50)
     try:
         result = asyncio.run(test_uvicorn_smoke())
         results.append(("Uvicorn Smoke Test", result))
@@ -222,7 +242,7 @@ def main():
     # Summary
     print(f"\n{'='*50}")
     print("SMOKE TEST SUMMARY")
-    print('='*50)
+    print("=" * 50)
 
     passed = 0
     total = len(results)

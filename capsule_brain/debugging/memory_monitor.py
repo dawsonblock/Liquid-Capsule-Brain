@@ -20,8 +20,8 @@ class MemoryMonitor:
         self.max_snapshots = 100
         self.tracemalloc_started = False
         # Track garbage collection counts over time
-        self._initial_gc_counts = None
-        self._last_gc_counts = None
+        self._initial_gc_counts: tuple[int, int, int] | None = None
+        self._last_gc_counts: tuple[int, int, int] | None = None
 
     def start_monitoring(self) -> None:
         """Start memory monitoring."""
@@ -33,7 +33,7 @@ class MemoryMonitor:
             self.tracemalloc_started = True
             # Initialize GC collection tracking
             self._initial_gc_counts = gc.get_count()
-            self._last_gc_counts = tuple(self._initial_gc_counts)
+            self._last_gc_counts = self._initial_gc_counts
             log.info("Memory monitoring started")
 
     def stop_monitoring(self) -> None:
@@ -43,7 +43,7 @@ class MemoryMonitor:
             self.tracemalloc_started = False
             log.info("Memory monitoring stopped")
 
-    def take_snapshot(self, label: str = None) -> dict[str, Any]:
+    def take_snapshot(self, label: str | None = None) -> dict[str, Any]:
         """Take a memory snapshot."""
         if not self.enabled:
             return {}
@@ -58,25 +58,31 @@ class MemoryMonitor:
 
         if self.tracemalloc_started:
             current, peak = tracemalloc.get_traced_memory()
-            snapshot.update({
-                "traced_current": current,
-                "traced_peak": peak,
-                "traced_difference": current - (self.memory_snapshots[-1]["traced_current"]
-                                               if self.memory_snapshots and "traced_current" in self.memory_snapshots[-1] else 0)
-            })
+            snapshot.update(
+                {
+                    "traced_current": current,
+                    "traced_peak": peak,
+                    "traced_difference": current
+                    - (
+                        self.memory_snapshots[-1]["traced_current"]
+                        if self.memory_snapshots and "traced_current" in self.memory_snapshots[-1]
+                        else 0
+                    ),
+                }
+            )
 
         self.memory_snapshots.append(snapshot)
 
         # Keep only recent snapshots
         if len(self.memory_snapshots) > self.max_snapshots:
-            self.memory_snapshots = self.memory_snapshots[-self.max_snapshots:]
+            self.memory_snapshots = self.memory_snapshots[-self.max_snapshots :]
 
         log.debug(f"Memory snapshot taken: {snapshot}")
         return snapshot
 
     def _count_objects(self) -> dict[str, int]:
         """Count objects by type."""
-        counts = {}
+        counts: dict[str, int] = {}
         for obj in gc.get_objects():
             obj_type = type(obj).__name__
             counts[obj_type] = counts.get(obj_type, 0) + 1
@@ -95,25 +101,29 @@ class MemoryMonitor:
         for obj_type, current_count in current["object_counts"].items():
             previous_count = previous["object_counts"].get(obj_type, 0)
             if current_count > previous_count * 1.5:  # 50% growth
-                leaks.append({
-                    "type": "growing_objects",
-                    "object_type": obj_type,
-                    "previous_count": previous_count,
-                    "current_count": current_count,
-                    "growth_rate": (current_count - previous_count) / max(previous_count, 1)
-                })
+                leaks.append(
+                    {
+                        "type": "growing_objects",
+                        "object_type": obj_type,
+                        "previous_count": previous_count,
+                        "current_count": current_count,
+                        "growth_rate": (current_count - previous_count) / max(previous_count, 1),
+                    }
+                )
 
         # Check for growing traced memory
         if "traced_current" in current and "traced_current" in previous:
             current_mem = current["traced_current"]
             previous_mem = previous["traced_current"]
             if current_mem > previous_mem * 1.2:  # 20% growth
-                leaks.append({
-                    "type": "growing_memory",
-                    "previous_memory": previous_mem,
-                    "current_memory": current_mem,
-                    "growth_rate": (current_mem - previous_mem) / max(previous_mem, 1)
-                })
+                leaks.append(
+                    {
+                        "type": "growing_memory",
+                        "previous_memory": previous_mem,
+                        "current_memory": current_mem,
+                        "growth_rate": (current_mem - previous_mem) / max(previous_mem, 1),
+                    }
+                )
 
         self.leak_suspects.extend(leaks)
         return leaks
@@ -128,15 +138,12 @@ class MemoryMonitor:
             "gc_threshold": gc.get_threshold(),
             "object_counts": self._count_objects(),
             "snapshots_count": len(self.memory_snapshots),
-            "leak_suspects_count": len(self.leak_suspects)
+            "leak_suspects_count": len(self.leak_suspects),
         }
 
         if self.tracemalloc_started:
             current, peak = tracemalloc.get_traced_memory()
-            stats.update({
-                "traced_current": current,
-                "traced_peak": peak
-            })
+            stats.update({"traced_current": current, "traced_peak": peak})
 
         return stats
 
@@ -165,7 +172,7 @@ class MemoryMonitor:
             "collected_objects": collected,
             "before_counts": before_counts,
             "after_counts": after_counts,
-            "reduction": tuple(b - a for a, b in zip(after_counts, before_counts, strict=False))
+            "reduction": tuple(b - a for a, b in zip(after_counts, before_counts, strict=False)),
         }
 
         log.info(f"Garbage collection: {collected} objects collected")
@@ -194,7 +201,7 @@ class MemoryMonitor:
             "time_span": self._calculate_time_span(),
             "memory_growth_rate": self._calculate_memory_growth_rate(),
             "object_growth_patterns": self._analyze_object_growth(),
-            "gc_efficiency": self._analyze_gc_efficiency()
+            "gc_efficiency": self._analyze_gc_efficiency(),
         }
 
         return analysis
@@ -254,7 +261,9 @@ class MemoryMonitor:
         current_counts = gc.get_count()
         if self._initial_gc_counts is not None:
             # Calculate collections by generation (current - initial)
-            collection_counts = tuple(c - i for c, i in zip(current_counts, self._initial_gc_counts, strict=False))
+            collection_counts = tuple(
+                c - i for c, i in zip(current_counts, self._initial_gc_counts, strict=False)
+            )
             total_collections = sum(collection_counts)
         else:
             # Fallback: use current object counts if tracking not initialized
@@ -268,7 +277,7 @@ class MemoryMonitor:
             "collections_per_second": total_collections / max(time_span, 1),
             "collection_counts_by_generation": collection_counts,
             "current_object_counts": current_counts,
-            "thresholds": gc.get_threshold()
+            "thresholds": gc.get_threshold(),
         }
 
     def enable(self) -> None:
@@ -290,7 +299,7 @@ class MemoryMonitor:
             "tracemalloc_active": self.tracemalloc_started,
             "snapshots_count": len(self.memory_snapshots),
             "leak_suspects_count": len(self.leak_suspects),
-            "current_stats": self.get_memory_stats()
+            "current_stats": self.get_memory_stats(),
         }
 
 
@@ -300,6 +309,7 @@ memory_monitor = MemoryMonitor(enabled=False)
 
 def monitor_memory(label: str = None):
     """Decorator to monitor memory usage of functions."""
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             if not memory_monitor.enabled:
@@ -315,4 +325,5 @@ def monitor_memory(label: str = None):
                 raise
 
         return wrapper
+
     return decorator

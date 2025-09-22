@@ -5,17 +5,9 @@ from __future__ import annotations
 
 import ast
 import sys
+import tomllib
 from collections.abc import Iterable
 from pathlib import Path
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    # For Python < 3.11, you would need to pip install tomli
-    try:
-        import tomli as tomllib
-    except ImportError:
-        tomllib = None
 
 
 def check_file_syntax(filepath: Path) -> tuple[bool, str | None]:
@@ -85,7 +77,9 @@ def _check_python_version(pyproject_path: Path) -> bool:
         return True  # Cannot check, so we don't fail
 
     if tomllib is None:
-        _print_status("⚠️", "tomli is not installed, skipping Python version check for older Python.")
+        _print_status(
+            "⚠️", "tomli is not installed, skipping Python version check for older Python."
+        )
         return True
 
     try:
@@ -107,7 +101,10 @@ def _check_python_version(pyproject_path: Path) -> bool:
         current_major, current_minor = sys.version_info.major, sys.version_info.minor
 
         if (current_major, current_minor) >= (req_major, req_minor):
-            _print_status("✅", f"Python version {current_major}.{current_minor} meets requirement '{requires_python}'")
+            _print_status(
+                "✅",
+                f"Python version {current_major}.{current_minor} meets requirement '{requires_python}'",
+            )
             return True
         else:
             _print_status(
@@ -116,7 +113,9 @@ def _check_python_version(pyproject_path: Path) -> bool:
             )
             return False
     except ValueError:
-        _print_status("⚠️", f"Could not parse 'requires-python' value: '{requires_python}'. Skipping check.")
+        _print_status(
+            "⚠️", f"Could not parse 'requires-python' value: '{requires_python}'. Skipping check."
+        )
         return True
 
 

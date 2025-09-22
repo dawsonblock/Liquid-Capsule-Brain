@@ -32,6 +32,7 @@ def _current_profile() -> str:
 def require_admin_token(token: str | None = Security(_admin_scheme)) -> None:
     """Validate the admin token header for sensitive routes."""
     import logging
+
     log = logging.getLogger(__name__)
 
     expected = os.getenv("ADMIN_TOKEN")
@@ -39,7 +40,9 @@ def require_admin_token(token: str | None = Security(_admin_scheme)) -> None:
 
     if expected:
         if token != expected:
-            log.warning(f"Invalid admin token - Expected: {expected[:10]}..., Received: {token[:10] if token else 'None'}...")
+            log.warning(
+                f"Invalid admin token - Expected: {expected[:10]}..., Received: {token[:10] if token else 'None'}..."
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="invalid admin token",
@@ -57,4 +60,3 @@ def require_admin_token(token: str | None = Security(_admin_scheme)) -> None:
         status_code=status.HTTP_403_FORBIDDEN,
         detail="admin token not configured",
     )
-

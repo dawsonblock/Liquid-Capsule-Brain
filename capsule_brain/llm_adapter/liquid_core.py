@@ -25,7 +25,9 @@ class MockCfC(torch.nn.Module):
         self.linear_out = torch.nn.Linear(hidden_size, out_features)
         self.activation = torch.nn.Tanh()
 
-    def forward(self, inputs: torch.Tensor, hidden: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, inputs: torch.Tensor, hidden: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         outputs = []
         for timestep in range(inputs.shape[1]):
             x_t = inputs[:, timestep, :]

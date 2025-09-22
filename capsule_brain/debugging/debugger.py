@@ -42,8 +42,9 @@ class Debugger:
             self.watch_expressions.append(expression)
             log.debug(f"Watch expression added: {expression}")
 
-    def log_debug_event(self, event_type: str, message: str,
-                       context: dict[str, Any] | None = None) -> None:
+    def log_debug_event(
+        self, event_type: str, message: str, context: dict[str, Any] | None = None
+    ) -> None:
         """Log a debug event with context."""
         if not self.enabled:
             return
@@ -53,14 +54,14 @@ class Debugger:
             "type": event_type,
             "message": message,
             "context": context or {},
-            "traceback": traceback.format_stack()[-3:-1]  # Skip current and caller
+            "traceback": traceback.format_stack()[-3:-1],  # Skip current and caller
         }
 
         self.debug_log.append(event)
 
         # Keep log size manageable
         if len(self.debug_log) > self.max_log_size:
-            self.debug_log = self.debug_log[-self.max_log_size:]
+            self.debug_log = self.debug_log[-self.max_log_size :]
 
         log.debug(f"Debug event: {event_type} - {message}")
 
@@ -74,8 +75,7 @@ class Debugger:
         log.debug("Debug log cleared")
 
     @asynccontextmanager
-    async def debug_context(self, context_name: str,
-                          context_data: dict[str, Any] | None = None):
+    async def debug_context(self, context_name: str, context_data: dict[str, Any] | None = None):
         """Context manager for debugging specific code sections."""
         start_time = datetime.now()
         self.log_debug_event("context_start", f"Entering {context_name}", context_data)
@@ -83,17 +83,21 @@ class Debugger:
         try:
             yield
         except Exception as e:
-            self.log_debug_event("context_error", f"Error in {context_name}: {str(e)}", {
-                "error": str(e),
-                "exception_type": type(e).__name__,
-                "traceback": traceback.format_exc()
-            })
+            self.log_debug_event(
+                "context_error",
+                f"Error in {context_name}: {str(e)}",
+                {
+                    "error": str(e),
+                    "exception_type": type(e).__name__,
+                    "traceback": traceback.format_exc(),
+                },
+            )
             raise
         finally:
             duration = (datetime.now() - start_time).total_seconds()
-            self.log_debug_event("context_end", f"Exiting {context_name}", {
-                "duration_seconds": duration
-            })
+            self.log_debug_event(
+                "context_end", f"Exiting {context_name}", {"duration_seconds": duration}
+            )
 
     def interactive_debug(self, frame=None) -> None:
         """Start interactive debugging session."""
@@ -111,9 +115,11 @@ class Debugger:
 
     def check_breakpoint(self, filename: str, line_number: int) -> bool:
         """Check if there's a breakpoint at the given location."""
-        return (self.enabled and
-                filename in self.breakpoints and
-                line_number in self.breakpoints[filename])
+        return (
+            self.enabled
+            and filename in self.breakpoints
+            and line_number in self.breakpoints[filename]
+        )
 
     def evaluate_watch_expressions(self, frame) -> dict[str, Any]:
         """Evaluate all watch expressions in the given frame."""
@@ -136,7 +142,7 @@ class Debugger:
             "breakpoints": self.breakpoints,
             "watch_expressions": self.watch_expressions,
             "log_size": len(self.debug_log),
-            "recent_events": self.get_debug_log(10)
+            "recent_events": self.get_debug_log(10),
         }
 
     def enable(self) -> None:
@@ -156,13 +162,16 @@ debugger = Debugger(enabled=False)
 
 def debug_breakpoint(filename: str, line_number: int) -> None:
     """Decorator to add breakpoint checking to functions."""
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if debugger.check_breakpoint(filename, line_number):
                 debugger.interactive_debug()
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 

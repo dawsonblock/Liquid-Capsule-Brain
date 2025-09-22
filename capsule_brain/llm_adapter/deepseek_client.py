@@ -35,11 +35,7 @@ class DeepSeekClient:
         return self.client is not None
 
     async def generate_response(
-        self,
-        context: str,
-        system_prompt: str,
-        max_tokens: int = 1000,
-        temperature: float = 0.7
+        self, context: str, system_prompt: str, max_tokens: int = 1000, temperature: float = 0.7
     ) -> dict[str, Any]:
         """Generate a response using DeepSeek V3."""
 
@@ -47,13 +43,13 @@ class DeepSeekClient:
             return {
                 "text": "[DeepSeek Unavailable] No API key configured.",
                 "model": "fallback",
-                "usage": {"total_tokens": 0}
+                "usage": {"total_tokens": 0},
             }
 
         try:
             messages: list[dict[str, str]] = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": context}
+                {"role": "user", "content": context},
             ]
 
             response = self.client.chat.completions.create(
@@ -61,27 +57,20 @@ class DeepSeekClient:
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                stream=False
+                stream=False,
             )
 
             return {
                 "text": response.choices[0].message.content or "",
                 "model": response.model,
-                "finish_reason": getattr(
-                    response.choices[0], "finish_reason", None
-                ),
+                "finish_reason": getattr(response.choices[0], "finish_reason", None),
                 "usage": {
-                    "prompt_tokens": (
-                        response.usage.prompt_tokens if response.usage else 0
-                    ),
+                    "prompt_tokens": (response.usage.prompt_tokens if response.usage else 0),
                     "completion_tokens": (
-                        response.usage.completion_tokens
-                        if response.usage else 0
+                        response.usage.completion_tokens if response.usage else 0
                     ),
-                    "total_tokens": (
-                        response.usage.total_tokens if response.usage else 0
-                    ),
-                }
+                    "total_tokens": (response.usage.total_tokens if response.usage else 0),
+                },
             }
 
         except APIError as exc:
@@ -89,36 +78,29 @@ class DeepSeekClient:
             return {
                 "text": f"[DeepSeek API Error] {exc.message or str(exc)}",
                 "model": "error",
-                "usage": {"total_tokens": 0}
+                "usage": {"total_tokens": 0},
             }
         except Exception as exc:
             log.error("DeepSeek unexpected error: %s", exc)
             return {
                 "text": f"[DeepSeek Error] Unexpected error: {str(exc)}",
                 "model": "error",
-                "usage": {"total_tokens": 0}
+                "usage": {"total_tokens": 0},
             }
 
     async def stream_response(
-        self,
-        context: str,
-        system_prompt: str,
-        max_tokens: int = 1000,
-        temperature: float = 0.7
+        self, context: str, system_prompt: str, max_tokens: int = 1000, temperature: float = 0.7
     ) -> Any:
         """Stream a response using DeepSeek V3."""
 
         if not self.client:
-            yield {
-                "text": "[DeepSeek Unavailable] No API key configured.",
-                "done": True
-            }
+            yield {"text": "[DeepSeek Unavailable] No API key configured.", "done": True}
             return
 
         try:
             messages: list[dict[str, str]] = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": context}
+                {"role": "user", "content": context},
             ]
 
             stream = self.client.chat.completions.create(
@@ -126,22 +108,15 @@ class DeepSeekClient:
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                stream=True
+                stream=True,
             )
 
             for chunk in stream:
                 if chunk.choices[0].delta.content:
-                    yield {
-                        "text": chunk.choices[0].delta.content,
-                        "done": False
-                    }
+                    yield {"text": chunk.choices[0].delta.content, "done": False}
 
             yield {"text": "", "done": True}
 
         except Exception as exc:
             log.error("DeepSeek streaming error: %s", exc)
-            yield {
-                "text": f"[DeepSeek Error] Streaming failed: {str(exc)}",
-                "done": True
-            }
-
+            yield {"text": f"[DeepSeek Error] Streaming failed: {str(exc)}", "done": True}

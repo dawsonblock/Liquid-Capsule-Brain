@@ -18,16 +18,18 @@ log = logging.getLogger(__name__)
 @dataclass
 class PerformanceMetric:
     """Performance metric data structure."""
+
     name: str
     value: float
     timestamp: datetime
     component: str
-    metadata: dict[str, Any] = None
+    metadata: dict[str, Any] | None = None
 
 
 @dataclass
 class PerformanceAlert:
     """Performance alert data structure."""
+
     metric_name: str
     threshold: float
     actual_value: float
@@ -55,26 +57,17 @@ class PerformanceMonitor:
     def set_default_thresholds(self) -> None:
         """Set default performance thresholds."""
         self.thresholds = {
-            "response_time": {
-                "warning": 1.0,  # 1 second
-                "critical": 5.0  # 5 seconds
-            },
+            "response_time": {"warning": 1.0, "critical": 5.0},  # 1 second  # 5 seconds
             "memory_usage": {
                 "warning": 100 * 1024 * 1024,  # 100MB
-                "critical": 500 * 1024 * 1024   # 500MB
+                "critical": 500 * 1024 * 1024,  # 500MB
             },
-            "cpu_usage": {
-                "warning": 80.0,  # 80%
-                "critical": 95.0  # 95%
-            },
-            "error_rate": {
-                "warning": 0.05,  # 5%
-                "critical": 0.20  # 20%
-            },
+            "cpu_usage": {"warning": 80.0, "critical": 95.0},  # 80%  # 95%
+            "error_rate": {"warning": 0.05, "critical": 0.20},  # 5%  # 20%
             "throughput": {
-                "warning": 1.0,   # 1 req/s (low throughput is bad)
-                "critical": 0.1   # 0.1 req/s (very low throughput is critical)
-            }
+                "warning": 1.0,  # 1 req/s (low throughput is bad)
+                "critical": 0.1,  # 0.1 req/s (very low throughput is critical)
+            },
         }
 
         # Define which metrics are "lower is worse" vs "higher is worse"
@@ -82,15 +75,11 @@ class PerformanceMonitor:
             "memory_usage": "higher_is_worse",
             "cpu_usage": "higher_is_worse",
             "error_rate": "higher_is_worse",
-            "throughput": "lower_is_worse"
+            "throughput": "lower_is_worse",
         }
 
     def record_metric(
-        self,
-        name: str,
-        value: float,
-        component: str = "unknown",
-        metadata: dict[str, Any] = None
+        self, name: str, value: float, component: str = "unknown", metadata: dict[str, Any] = None
     ) -> None:
         """Record a performance metric."""
         with self.lock:
@@ -99,7 +88,7 @@ class PerformanceMonitor:
                 value=value,
                 timestamp=datetime.now(),
                 component=component,
-                metadata=metadata or {}
+                metadata=metadata or {},
             )
 
             self.metrics.append(metric)
@@ -107,8 +96,7 @@ class PerformanceMonitor:
 
             # Keep only recent history
             if len(self.performance_history[name]) > 1000:
-                self.performance_history[name] = \
-                self.performance_history[name][-1000:]
+                self.performance_history[name] = self.performance_history[name][-1000:]
 
             # Check thresholds
             self._check_thresholds(metric)
@@ -124,31 +112,30 @@ class PerformanceMonitor:
         # Determine comparison operator based on metric direction
         direction = self.metric_directions.get(metric.name, "higher_is_worse")
         if direction == "lower_is_worse":
-            def critical_op(v, t): return v <= t
-            def warning_op(v, t): return v <= t
+
+            def critical_op(v, t):
+                return v <= t
+
+            def warning_op(v, t):
+                return v <= t
+
         else:  # higher_is_worse
-            def critical_op(v, t): return v >= t
-            def warning_op(v, t): return v >= t
+
+            def critical_op(v, t):
+                return v >= t
+
+            def warning_op(v, t):
+                return v >= t
 
         # Check critical threshold
-        if ("critical" in thresholds and
-            critical_op(value, thresholds["critical"])):
-            self._create_alert(
-                metric, "critical", thresholds["critical"], value
-            )
+        if "critical" in thresholds and critical_op(value, thresholds["critical"]):
+            self._create_alert(metric, "critical", thresholds["critical"], value)
         # Check warning threshold
-        elif ("warning" in thresholds and
-              warning_op(value, thresholds["warning"])):
-            self._create_alert(
-                metric, "warning", thresholds["warning"], value
-            )
+        elif "warning" in thresholds and warning_op(value, thresholds["warning"]):
+            self._create_alert(metric, "warning", thresholds["warning"], value)
 
     def _create_alert(
-        self,
-        metric: PerformanceMetric,
-        severity: str,
-        threshold: float,
-        actual_value: float
+        self, metric: PerformanceMetric, severity: str, threshold: float, actual_value: float
     ) -> None:
         """Create a performance alert."""
         alert = PerformanceAlert(
@@ -158,17 +145,14 @@ class PerformanceMonitor:
             severity=severity,
             timestamp=datetime.now(),
             component=metric.component,
-            message=f"{metric.name} exceeded {severity} threshold: {actual_value} >= {threshold}"
+            message=f"{metric.name} exceeded {severity} threshold: {actual_value} >= {threshold}",
         )
 
         self.alerts.append(alert)
         log.warning(f"Performance alert: {alert.message}")
 
     def set_threshold(
-        self,
-        metric_name: str,
-        warning: float = None,
-        critical: float = None
+        self, metric_name: str, warning: float = None, critical: float = None
     ) -> None:
         """Set custom thresholds for a metric."""
         if metric_name not in self.thresholds:
@@ -199,7 +183,7 @@ class PerformanceMonitor:
             "std_dev": statistics.stdev(values) if len(values) > 1 else 0,
             "percentile_95": self._percentile(values, 95),
             "percentile_99": self._percentile(values, 99),
-            "recent_trend": self._calculate_trend(values[-10:]) if len(values) >= 10 else None
+            "recent_trend": self._calculate_trend(values[-10:]) if len(values) >= 10 else None,
         }
 
     def _percentile(self, values: list[float], percentile: int) -> float:
@@ -246,13 +230,15 @@ class PerformanceMonitor:
                 return {"error": "No metrics available"}
 
             # Get unique metric names
-            metric_names = list(set(m.name for m in self.metrics))
+            metric_names = list({m.name for m in self.metrics})
 
             overview = {
                 "total_metrics": len(self.metrics),
                 "metric_types": len(metric_names),
-                "active_alerts": len([a for a in self.alerts if a.timestamp > datetime.now() - timedelta(hours=1)]),
-                "metrics": {}
+                "active_alerts": len(
+                    [a for a in self.alerts if a.timestamp > datetime.now() - timedelta(hours=1)]
+                ),
+                "metrics": {},
             }
 
             # Calculate summary for each metric
@@ -262,20 +248,20 @@ class PerformanceMonitor:
             return overview
 
     def get_recent_metrics(
-        self,
-        metric_name: str = None,
-        component: str = None,
-        minutes: int = 60
+        self, metric_name: str = None, component: str = None, minutes: int = 60
     ) -> list[dict[str, Any]]:
         """Get recent metrics with optional filtering."""
         cutoff_time = datetime.now() - timedelta(minutes=minutes)
 
         with self.lock:
             filtered_metrics = [
-                m for m in self.metrics
-                if (m.timestamp > cutoff_time and
-                    (metric_name is None or m.name == metric_name) and
-                    (component is None or m.component == component))
+                m
+                for m in self.metrics
+                if (
+                    m.timestamp > cutoff_time
+                    and (metric_name is None or m.name == metric_name)
+                    and (component is None or m.component == component)
+                )
             ]
 
             return [
@@ -284,25 +270,25 @@ class PerformanceMonitor:
                     "value": m.value,
                     "timestamp": m.timestamp.isoformat(),
                     "component": m.component,
-                    "metadata": m.metadata
+                    "metadata": m.metadata,
                 }
                 for m in filtered_metrics
             ]
 
     def get_alerts(
-        self,
-        severity: str = None,
-        component: str = None,
-        hours: int = 24
+        self, severity: str = None, component: str = None, hours: int = 24
     ) -> list[dict[str, Any]]:
         """Get performance alerts with optional filtering."""
         cutoff_time = datetime.now() - timedelta(hours=hours)
 
         filtered_alerts = [
-            a for a in self.alerts
-            if (a.timestamp > cutoff_time and
-                (severity is None or a.severity == severity) and
-                (component is None or a.component == component))
+            a
+            for a in self.alerts
+            if (
+                a.timestamp > cutoff_time
+                and (severity is None or a.severity == severity)
+                and (component is None or a.component == component)
+            )
         ]
 
         return [
@@ -313,7 +299,7 @@ class PerformanceMonitor:
                 "severity": a.severity,
                 "timestamp": a.timestamp.isoformat(),
                 "component": a.component,
-                "message": a.message
+                "message": a.message,
             }
             for a in filtered_alerts
         ]
@@ -324,8 +310,7 @@ class PerformanceMonitor:
 
         with self.lock:
             recent_values = [
-                m.value for m in self.metrics
-                if m.name == metric_name and m.timestamp > cutoff_time
+                m.value for m in self.metrics if m.name == metric_name and m.timestamp > cutoff_time
             ]
 
         if not recent_values:
@@ -385,7 +370,9 @@ class PerformanceMonitor:
             "status": status,
             "total_metrics": total_metrics,
             "violations": violations,
-            "violation_rate": round(violations / total_metrics * 100, 2) if total_metrics > 0 else 0
+            "violation_rate": (
+                round(violations / total_metrics * 100, 2) if total_metrics > 0 else 0
+            ),
         }
 
     def clear_old_data(self, days: int = 30) -> int:
@@ -396,8 +383,7 @@ class PerformanceMonitor:
             # Clear old metrics
             original_count = len(self.metrics)
             self.metrics = deque(
-                [m for m in self.metrics if m.timestamp > cutoff_time],
-                maxlen=self.max_metrics
+                [m for m in self.metrics if m.timestamp > cutoff_time], maxlen=self.max_metrics
             )
             metrics_cleared = original_count - len(self.metrics)
 
@@ -422,7 +408,7 @@ class PerformanceMonitor:
                         "value": m.value,
                         "timestamp": m.timestamp.isoformat(),
                         "component": m.component,
-                        "metadata": m.metadata
+                        "metadata": m.metadata,
                     }
                     for m in self.metrics
                 ],
@@ -434,16 +420,16 @@ class PerformanceMonitor:
                         "severity": a.severity,
                         "timestamp": a.timestamp.isoformat(),
                         "component": a.component,
-                        "message": a.message
+                        "message": a.message,
                     }
                     for a in self.alerts
                 ],
                 "thresholds": self.thresholds,
                 "baselines": self.baselines,
-                "export_timestamp": datetime.now().isoformat()
+                "export_timestamp": datetime.now().isoformat(),
             }
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
         log.info(f"Performance data exported to {filepath}")
@@ -455,6 +441,7 @@ performance_monitor = PerformanceMonitor()
 
 def monitor_performance(metric_name: str, component: str = "unknown") -> Callable:
     """Decorator to monitor function performance."""
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -462,15 +449,11 @@ def monitor_performance(metric_name: str, component: str = "unknown") -> Callabl
             try:
                 result = await func(*args, **kwargs)
                 duration = time.time() - start_time
-                performance_monitor.record_metric(
-                    metric_name, duration, component
-                )
+                performance_monitor.record_metric(metric_name, duration, component)
                 return result
             except Exception:
                 duration = time.time() - start_time
-                performance_monitor.record_metric(
-                    f"{metric_name}_error", duration, component
-                )
+                performance_monitor.record_metric(f"{metric_name}_error", duration, component)
                 raise
 
         @functools.wraps(func)
@@ -479,15 +462,11 @@ def monitor_performance(metric_name: str, component: str = "unknown") -> Callabl
             try:
                 result = func(*args, **kwargs)
                 duration = time.time() - start_time
-                performance_monitor.record_metric(
-                    metric_name, duration, component
-                )
+                performance_monitor.record_metric(metric_name, duration, component)
                 return result
             except Exception:
                 duration = time.time() - start_time
-                performance_monitor.record_metric(
-                    f"{metric_name}_error", duration, component
-                )
+                performance_monitor.record_metric(f"{metric_name}_error", duration, component)
                 raise
 
         if asyncio.iscoroutinefunction(func):

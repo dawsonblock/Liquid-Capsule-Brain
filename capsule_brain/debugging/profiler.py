@@ -44,8 +44,7 @@ class Profiler:
         self.profiles[name].disable()
         log.debug(f"Stopped profiling: {name}")
 
-    def get_profile_stats(self, name: str,
-                         sort_by: str = "cumulative") -> str:
+    def get_profile_stats(self, name: str, sort_by: str = "cumulative") -> str:
         """Get profiling statistics for a named section."""
         if name not in self.profiles:
             return f"No profile data for '{name}'"
@@ -57,8 +56,19 @@ class Profiler:
 
         return s.getvalue()
 
-    def time_function(self, name: str = None):
+    def get_profiling_summary(self) -> dict[str, Any]:
+        """Get a summary of all profiling data."""
+        summary = {
+            "enabled": self.enabled,
+            "active_profiles": list(self.profiles.keys()),
+            "timing_data": dict(self.timing_data),
+            "memory_snapshots_count": len(self.memory_snapshots),
+        }
+        return summary
+
+    def time_function(self, name: str | None = None):
         """Decorator to time function execution."""
+
         def decorator(func: Callable) -> Callable:
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
@@ -120,13 +130,12 @@ class Profiler:
             "average": sum(times) / len(times),
             "min": min(times),
             "max": max(times),
-            "median": sorted(times)[len(times) // 2]
+            "median": sorted(times)[len(times) // 2],
         }
 
     def get_all_timing_stats(self) -> dict[str, dict[str, float]]:
         """Get timing statistics for all functions."""
-        return {name: self.get_timing_stats(name)
-                for name in self.timing_data.keys()}
+        return {name: self.get_timing_stats(name) for name in self.timing_data.keys()}
 
     @asynccontextmanager
     async def profile_context(self, name: str):
@@ -152,6 +161,7 @@ class Profiler:
 
         try:
             import psutil
+
             process = psutil.Process()
             memory_info = process.memory_info()
 
@@ -161,14 +171,14 @@ class Profiler:
                 "rss": memory_info.rss,  # Resident Set Size
                 "vms": memory_info.vms,  # Virtual Memory Size
                 "percent": process.memory_percent(),
-                "available": psutil.virtual_memory().available
+                "available": psutil.virtual_memory().available,
             }
 
             self.memory_snapshots.append(snapshot)
 
             # Keep only recent snapshots
             if len(self.memory_snapshots) > self.max_snapshots:
-                self.memory_snapshots = self.memory_snapshots[-self.max_snapshots:]
+                self.memory_snapshots = self.memory_snapshots[-self.max_snapshots :]
 
             log.debug(f"Memory snapshot taken: {snapshot}")
 
@@ -195,22 +205,15 @@ class Profiler:
             "active_profiles": len(self.profiles),
             "timed_functions": len(self.timing_data),
             "memory_snapshots": len(self.memory_snapshots),
-            "top_slow_functions": self._get_top_slow_functions(5)
+            "top_slow_functions": self._get_top_slow_functions(5),
         }
 
     def _get_top_slow_functions(self, limit: int = 5) -> list[dict[str, Any]]:
         """Get top slowest functions by average time."""
         stats = self.get_all_timing_stats()
-        sorted_functions = sorted(
-            stats.items(),
-            key=lambda x: x[1].get("average", 0),
-            reverse=True
-        )
+        sorted_functions = sorted(stats.items(), key=lambda x: x[1].get("average", 0), reverse=True)
 
-        return [
-            {"function": name, "stats": stats}
-            for name, stats in sorted_functions[:limit]
-        ]
+        return [{"function": name, "stats": stats} for name, stats in sorted_functions[:limit]]
 
     def enable(self) -> None:
         """Enable profiling."""
@@ -227,7 +230,7 @@ class Profiler:
 profiler = Profiler(enabled=False)
 
 
-def profile_function(name: str = None):
+def profile_function(name: str | None = None):
     """Decorator to profile function execution."""
     return profiler.time_function(name)
 

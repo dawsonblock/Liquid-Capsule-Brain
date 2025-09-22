@@ -24,16 +24,12 @@ class AdvancedGUI:
         static_path = Path(__file__).parent / "static"
 
         if not any(
-            isinstance(route, Mount) and route.path == "/static"
-            for route in self.app.router.routes
+            isinstance(route, Mount) and route.path == "/static" for route in self.app.router.routes
         ):
-            self.app.mount(
-                "/static", StaticFiles(directory=static_path), name="static"
-            )
+            self.app.mount("/static", StaticFiles(directory=static_path), name="static")
 
         if not any(
-            isinstance(route, APIRoute) and route.path == "/"
-            for route in self.app.router.routes
+            isinstance(route, APIRoute) and route.path == "/" for route in self.app.router.routes
         ):
 
             async def root() -> FileResponse:
@@ -51,9 +47,7 @@ class AdvancedGUI:
             async def mobile_root() -> FileResponse:
                 return FileResponse(mobile_static_path / "index.html")
 
-            self.app.add_api_route(
-                "/mobile", mobile_root, include_in_schema=False
-            )
+            self.app.add_api_route("/mobile", mobile_root, include_in_schema=False)
 
         if not any(
             isinstance(route, WebSocketRoute) and route.path == "/ws"

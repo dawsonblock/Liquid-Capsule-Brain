@@ -26,7 +26,9 @@ class SelfWirer:
             try:
                 edits = self._propose_edits()
                 if edits:
-                    await bus.put({"type": "self_wiring_proposal", "edits": edits, "ts": time.time()})
+                    await bus.put(
+                        {"type": "self_wiring_proposal", "edits": edits, "ts": time.time()}
+                    )
                     self.last_proposal_time = time.time()
             except Exception as exc:  # pragma: no cover - defensive logging
                 log.error("Self-wiring error: %s", exc)
