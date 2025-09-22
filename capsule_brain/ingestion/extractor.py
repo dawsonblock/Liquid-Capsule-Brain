@@ -59,10 +59,13 @@ def preview_text(text: str, max_chars: int = MAX_PREVIEW_CHARS) -> str:
     return snippet + "\n... [truncated]"
 
 
-def extract_bytes(filename: str, content_type: str | None, data: bytes) -> tuple[str, dict[str, Any]]:
+def extract_bytes(
+    filename: str, content_type: str | None, data: bytes
+) -> tuple[str, dict[str, Any]]:
     """Extract textual content from bytes based on file type.
 
-    Returns (text, meta) where meta contains filename, type, size, and extra fields.
+    Returns (text, meta) where meta contains filename, type, size, and extra
+    fields.
     """
     if len(data) > MAX_BYTES:
         data = data[:MAX_BYTES]
@@ -90,7 +93,8 @@ def extract_bytes(filename: str, content_type: str | None, data: bytes) -> tuple
         return _safe_decode(data), meta
 
     # ZIP archive
-    if ext in SUPPORTED_ARCHIVE_EXTS or ctype in ("application/zip", "application/x-zip-compressed"):
+    if (ext in SUPPORTED_ARCHIVE_EXTS or 
+        ctype in ("application/zip", "application/x-zip-compressed")):
         meta["type"] = "zip"
         extracted_files: list[str] = []
         parts: list[str] = []
@@ -107,20 +111,28 @@ def extract_bytes(filename: str, content_type: str | None, data: bytes) -> tuple
                 if sub_ext in SUPPORTED_TXT_EXTS:
                     content = _safe_decode(file_bytes)
                     if content.strip():
-                        parts.append(f"===== {name} (Text File) =====\n{content}")
+                        parts.append(
+                            f"===== {name} (Text File) =====\n{content}"
+                        )
                         extracted_files.append(name)
                 elif sub_ext in SUPPORTED_PDF_EXTS:
                     pdf_content = _extract_text_from_pdf_bytes(file_bytes)
                     if pdf_content.strip():
-                        parts.append(f"===== {name} (PDF Document) =====\n{pdf_content}")
+                        parts.append(
+                            f"===== {name} (PDF Document) =====\n{pdf_content}"
+                        )
                         extracted_files.append(name)
                 else:
                     # Try generic text decode for unknown small files
-                    if len(file_bytes) <= MAX_BYTES and sub_ext not in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".avi", ".mov"}:
+                    if (len(file_bytes) <= MAX_BYTES and 
+                        sub_ext not in {".png", ".jpg", ".jpeg", ".gif", 
+                                      ".webp", ".mp4", ".avi", ".mov"}):
                         try:
                             content = _safe_decode(file_bytes)
                             if content.strip():
-                                parts.append(f"===== {name} (Unknown Text Format) =====\n{content}")
+                                parts.append(
+                                    f"===== {name} (Unknown Text Format) =====\n{content}"
+                                )
                                 extracted_files.append(name)
                         except Exception:
                             pass

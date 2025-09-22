@@ -10,7 +10,6 @@ from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from starlette.routing import Mount, WebSocketRoute
 
-from ..security.secrets import SecretManager
 
 log = logging.getLogger(__name__)
 
@@ -25,10 +24,18 @@ class AdvancedGUI:
     def _setup_routes(self) -> None:
         static_path = Path(__file__).parent / "static"
 
-        if not any(isinstance(route, Mount) and route.path == "/static" for route in self.app.router.routes):
-            self.app.mount("/static", StaticFiles(directory=static_path), name="static")
+        if not any(
+            isinstance(route, Mount) and route.path == "/static"
+            for route in self.app.router.routes
+        ):
+            self.app.mount(
+                "/static", StaticFiles(directory=static_path), name="static"
+            )
 
-        if not any(isinstance(route, APIRoute) and route.path == "/" for route in self.app.router.routes):
+        if not any(
+            isinstance(route, APIRoute) and route.path == "/"
+            for route in self.app.router.routes
+        ):
 
             async def root() -> FileResponse:
                 return FileResponse(static_path / "index.html")
@@ -36,22 +43,29 @@ class AdvancedGUI:
             self.app.add_api_route("/", root, include_in_schema=False)
 
         # Add mobile route
-        if not any(isinstance(route, APIRoute) and route.path == "/mobile" for route in self.app.router.routes):
+        if not any(
+            isinstance(route, APIRoute) and route.path == "/mobile"
+            for route in self.app.router.routes
+        ):
             mobile_static_path = static_path / "mobile"
-            
+
             async def mobile_root() -> FileResponse:
                 return FileResponse(mobile_static_path / "index.html")
 
-            self.app.add_api_route("/mobile", mobile_root, include_in_schema=False)
+            self.app.add_api_route(
+                "/mobile", mobile_root, include_in_schema=False
+            )
 
-        if not any(isinstance(route, WebSocketRoute) and route.path == "/ws" for route in self.app.router.routes):
+        if not any(
+            isinstance(route, WebSocketRoute) and route.path == "/ws"
+            for route in self.app.router.routes
+        ):
 
             async def websocket_endpoint(
-                websocket: WebSocket, token: str | None = Query(None)
+                websocket: WebSocket, _token: str | None = Query(None)
             ) -> None:
                 # Allow WebSocket connections without authentication for now
                 # In production, you might want to add proper authentication
-                pass
 
                 await websocket.accept()
                 self._clients.add(websocket)
@@ -71,7 +85,7 @@ class AdvancedGUI:
                 except asyncio.CancelledError:
                     log.debug("WebSocket connection cancelled")
                     raise
-                except Exception as exc:  # pragma: no cover - defensive logging
+                except Exception as exc:  # pragma: no cover - defensive
                     log.error("WebSocket error: %s", exc)
                 finally:
                     self._clients.discard(websocket)

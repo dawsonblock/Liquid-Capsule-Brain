@@ -31,7 +31,7 @@ class CapsuleEngine:
         self._gui_task: asyncio.Task[Any] | None = None
         self._shutdown_event = asyncio.Event()
         self.overseer_enabled = False
-        self.overseer = None
+        self.overseer: Any = None
 
     def register_background_task(
         self, task_or_coro: Coroutine[Any, Any, Any] | asyncio.Task[Any]
@@ -51,11 +51,15 @@ class CapsuleEngine:
 
         self._shutdown_event.clear()
         self.bus = asyncio.Queue()
-        self.register_background_task(self.iit_analyzer.run_analysis_loop(self.bus))
+        self.register_background_task(
+            self.iit_analyzer.run_analysis_loop(self.bus)
+        )
         self.register_background_task(self.self_wirer.run(self.bus))
         self.gui = AdvancedGUI(self, app)
-        self._gui_task = self.register_background_task(self.gui.run_broadcasters())
-        
+        self._gui_task = self.register_background_task(
+            self.gui.run_broadcasters()
+        )
+
         # Start overseer if enabled
         if self.overseer_enabled:
             await self.start_overseer()
@@ -87,9 +91,13 @@ class CapsuleEngine:
         return self._shutdown_event.is_set()
 
     def add_memory(self, role: str, content: str) -> None:
-        self.memory.append({"ts": time.time(), "role": role, "content": content})
+        self.memory.append({
+            "ts": time.time(),
+            "role": role,
+            "content": content
+        })
         self.memory = self.memory[-5000:]
-        
+
         # Broadcast memory update to GUI
         if self.bus:
             asyncio.create_task(self.bus.put({
@@ -101,7 +109,9 @@ class CapsuleEngine:
                 }
             }))
 
-    def add_graph_edge(self, source: str, target: str, relation: str = "related_to") -> None:
+    def add_graph_edge(
+        self, source: str, target: str, relation: str = "related_to"
+    ) -> None:
         self.knowledge_graph.add_node(source)
         self.knowledge_graph.add_node(target)
         self.knowledge_graph.add_edge(source, target, relation=relation)
@@ -121,7 +131,9 @@ class CapsuleEngine:
             },
             "belief_state": {
                 "current_query": self.belief_state_manager.current_query,
-                "retrieved_knowledge": self.belief_state_manager.retrieved_knowledge,
+                "retrieved_knowledge": (
+                    self.belief_state_manager.retrieved_knowledge
+                ),
                 "current_plan": self.belief_state_manager.current_plan,
                 "last_update": self.belief_state_manager.last_update,
             },
@@ -135,7 +147,10 @@ class CapsuleEngine:
             "current_phi": self.iit_analyzer.current_phi,
             "neural_glyphs": self.iit_analyzer.current_glyphs,
             "graph_activity": {
-                "recent_additions": len([m for m in self.memory if m.get("type") == "graph_edge"][-5:]),
+                "recent_additions": len([
+                    m for m in self.memory
+                    if m.get("type") == "graph_edge"
+                ][-5:]),
                 "active_nodes": list(self.knowledge_graph.nodes())[-10:],
             },
             "self_wiring_proposals": self.self_wirer.performance_history[-5:],
@@ -146,11 +161,11 @@ class CapsuleEngine:
         """Start the AI overseer if not already running."""
         if self.overseer is not None:
             return
-            
+
         try:
             from teacher.ai_overseer import AIOverseer
             from pathlib import Path
-            
+
             config_path = Path("teacher/overseer_config.yaml")
             if config_path.exists():
                 self.overseer = AIOverseer(config_path=config_path)
@@ -158,7 +173,9 @@ class CapsuleEngine:
                 self.register_background_task(self._run_overseer_loop())
                 log.info("AI Overseer started")
             else:
-                log.warning("Overseer config not found, skipping overseer startup")
+                log.warning(
+                    "Overseer config not found, skipping overseer startup"
+                )
         except Exception as exc:
             log.error("Failed to start overseer: %s", exc)
 
@@ -172,24 +189,26 @@ class CapsuleEngine:
         """Run the overseer supervisory loop."""
         if not self.overseer:
             return
-            
+
         try:
             while not self._shutdown_event.is_set() and self.overseer_enabled:
                 try:
                     student_state = await self.overseer.assess_student_state()
                     plan = await self.overseer.plan_next_action(student_state)
                     await self.overseer.execute_action(plan)
-                    
+
                     # Broadcast overseer action to GUI
                     if self.bus:
                         await self.bus.put({
                             "type": "overseer_action",
                             "payload": {
                                 "action": plan.get("action"),
-                                "description": self._describe_overseer_action(plan)
+                                "description": (
+                                    self._describe_overseer_action(plan)
+                                )
                             }
                         })
-                        
+
                 except Exception as exc:
                     log.error("Overseer cycle error: %s", exc)
                 finally:
@@ -202,10 +221,13 @@ class CapsuleEngine:
     def _describe_overseer_action(self, plan: dict[str, Any]) -> str:
         """Generate a human-readable description of the overseer action."""
         action = plan.get("action", "unknown")
-        
+
         if action == "reasoning_probe":
             question = plan.get("question", "")
-            return f"Reasoning probe: {question[:100]}{'...' if len(question) > 100 else ''}"
+            return (
+                f"Reasoning probe: {question[:100]}"
+                f"{'...' if len(question) > 100 else ''}"
+            )
         elif action == "knowledge_injection":
             topic = plan.get("topic", "")
             return f"Knowledge injection: {topic}"
@@ -234,8 +256,12 @@ class CapsuleEngine:
                 "type": "belief_state_update",
                 "payload": {
                     "belief_state": {
-                        "current_query": self.belief_state_manager.current_query,
-                        "retrieved_knowledge": self.belief_state_manager.retrieved_knowledge,
+                        "current_query": (
+                            self.belief_state_manager.current_query
+                        ),
+                        "retrieved_knowledge": (
+                            self.belief_state_manager.retrieved_knowledge
+                        ),
                         "current_plan": self.belief_state_manager.current_plan,
                         "last_update": self.belief_state_manager.last_update,
                     },

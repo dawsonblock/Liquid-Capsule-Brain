@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-import time
-from typing import Any
+from typing import Any, Dict, List
 
 from openai import OpenAI, APIError
 
@@ -52,7 +51,7 @@ class DeepSeekClient:
             }
 
         try:
-            messages = [
+            messages: List[Dict[str, str]] = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": context}
             ]
@@ -68,13 +67,16 @@ class DeepSeekClient:
             return {
                 "text": response.choices[0].message.content or "",
                 "model": response.model,
-                "finish_reason": getattr(response.choices[0], "finish_reason", None),
+                "finish_reason": getattr(
+                    response.choices[0], "finish_reason", None
+                ),
                 "usage": {
                     "prompt_tokens": (
                         response.usage.prompt_tokens if response.usage else 0
                     ),
                     "completion_tokens": (
-                        response.usage.completion_tokens if response.usage else 0
+                        response.usage.completion_tokens
+                        if response.usage else 0
                     ),
                     "total_tokens": (
                         response.usage.total_tokens if response.usage else 0
@@ -114,7 +116,7 @@ class DeepSeekClient:
             return
 
         try:
-            messages = [
+            messages: List[Dict[str, str]] = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": context}
             ]
