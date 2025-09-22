@@ -8,5 +8,5 @@ ruff==0.6.8
 mypy==1.10.0
 pre-commit==3.7.1
 fastapi==0.110.0
-httpx==0.27.0
+httpx==0.28.1
 prometheus-fastapi-instrumentator==7.0.0
