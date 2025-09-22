@@ -93,7 +93,7 @@ def extract_bytes(
         return _safe_decode(data), meta
 
     # ZIP archive
-    if (ext in SUPPORTED_ARCHIVE_EXTS or 
+    if (ext in SUPPORTED_ARCHIVE_EXTS or
         ctype in ("application/zip", "application/x-zip-compressed")):
         meta["type"] = "zip"
         extracted_files: list[str] = []
@@ -124,8 +124,8 @@ def extract_bytes(
                         extracted_files.append(name)
                 else:
                     # Try generic text decode for unknown small files
-                    if (len(file_bytes) <= MAX_BYTES and 
-                        sub_ext not in {".png", ".jpg", ".jpeg", ".gif", 
+                    if (len(file_bytes) <= MAX_BYTES and
+                        sub_ext not in {".png", ".jpg", ".jpeg", ".gif",
                                       ".webp", ".mp4", ".avi", ".mov"}):
                         try:
                             content = _safe_decode(file_bytes)

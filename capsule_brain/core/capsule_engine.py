@@ -163,8 +163,9 @@ class CapsuleEngine:
             return
 
         try:
-            from teacher.ai_overseer import AIOverseer
             from pathlib import Path
+
+            from teacher.ai_overseer import AIOverseer
 
             config_path = Path("teacher/overseer_config.yaml")
             if config_path.exists():

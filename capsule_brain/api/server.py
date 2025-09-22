@@ -68,9 +68,16 @@ app = FastAPI(
     lifespan=app_lifespan,
 )
 
+# Configure CORS from environment
+_cors = os.getenv("CORS_ORIGINS", "*")
+origins = (
+    ["*"] if _cors == "*"
+    else [o.strip() for o in _cors.split(",") if o.strip()]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -101,7 +108,7 @@ class AskRequest(BaseModel):
     q: str
 
 
-@app.get("/healthz")
+@app.get("/healthz", dependencies=[Depends(require_admin_token)])
 async def healthz() -> dict[str, Any]:
     return {"ok": True}
 
@@ -176,6 +183,14 @@ async def ask_with_document(
     try:
         # Read the uploaded file content
         file_content = await file.read()
+
+        # Enforce upload size limit
+        MAX_BYTES = int(os.getenv("UPLOAD_MAX_BYTES", "10485760"))  # 10 MiB
+        if len(file_content) > MAX_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum size: {MAX_BYTES} bytes"
+            )
         log.info(
             "Processing uploaded file: %s (%d bytes)",
             file.filename,
@@ -284,8 +299,17 @@ Document Content:
 
 
 @app.get("/debug/env")
-async def debug_env() -> dict[str, Any]:
+async def debug_env(request: Request) -> dict[str, Any]:
     """Debug endpoint to check environment variables."""
+    # Only allow in development environments or with admin token
+    env = os.getenv("APP_ENV", "development").lower()
+    if env not in {"local", "development", "dev"}:
+        # Check for admin token in production
+        from capsule_brain.security.admin import require_admin_token
+        try:
+            require_admin_token(request.headers.get("x-admin-token"))
+        except Exception:
+            raise HTTPException(status_code=404, detail="Not found") from None
     admin_val = os.getenv("ADMIN_TOKEN")
     return {
         "admin_token_set": bool(admin_val),

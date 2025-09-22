@@ -18,11 +18,17 @@ else:
 
 
 def main() -> None:
+    env = os.getenv("APP_ENV", "development").lower()
+    reload = env in {"local", "development", "dev"}
+    workers = int(os.getenv("UVICORN_WORKERS", "1" if reload else "2"))
     uvicorn.run(
         "capsule_brain.api.server:app",
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", "8000")),
-        reload=True,
+        reload=reload,
+        workers=workers,
+        proxy_headers=True,
+        forwarded_allow_ips="*",
     )
 
 

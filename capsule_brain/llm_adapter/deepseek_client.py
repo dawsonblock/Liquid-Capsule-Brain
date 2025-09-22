@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any
 
-from openai import OpenAI, APIError
+from openai import APIError, OpenAI
 
 log = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class DeepSeekClient:
             }
 
         try:
-            messages: List[Dict[str, str]] = [
+            messages: list[dict[str, str]] = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": context}
             ]
@@ -116,7 +116,7 @@ class DeepSeekClient:
             return
 
         try:
-            messages: List[Dict[str, str]] = [
+            messages: list[dict[str, str]] = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": context}
             ]

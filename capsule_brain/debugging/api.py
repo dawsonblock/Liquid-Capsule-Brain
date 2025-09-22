@@ -1,21 +1,19 @@
 """Debugging API endpoints for the Capsule Brain system."""
 
-import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from .advanced_debugger import advanced_debugger
-from .debugger import debugger
-from .profiler import profiler
-from .memory_monitor import memory_monitor
-from .error_tracker import error_tracker, ErrorSeverity, ErrorCategory
-from .performance_monitor import performance_monitor
-from .health_checker import health_checker
 from ..security.admin import require_admin_token
+from .advanced_debugger import advanced_debugger
+from .error_tracker import error_tracker
+from .health_checker import health_checker
+from .memory_monitor import memory_monitor
+from .performance_monitor import performance_monitor
+from .profiler import profiler
 
 log = logging.getLogger(__name__)
 
@@ -26,14 +24,14 @@ debug_router = APIRouter(prefix="/debug", tags=["debugging"])
 class DebugRequest(BaseModel):
     """Debug request model."""
     issue_description: str
-    context: Optional[Dict[str, Any]] = None
+    context: dict[str, Any] | None = None
 
 
 class PerformanceThresholdRequest(BaseModel):
     """Performance threshold request model."""
     metric_name: str
-    warning: Optional[float] = None
-    critical: Optional[float] = None
+    warning: float | None = None
+    critical: float | None = None
 
 
 @debug_router.get("/status")

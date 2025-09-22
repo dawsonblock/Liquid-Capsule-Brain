@@ -28,11 +28,11 @@ class AIOverseer:
         self.student_api_host = student_api_host.rstrip("/")
         self.config = self._load_config(config_path)
         self.http_client = httpx.AsyncClient(timeout=http_timeout)
-        
+
         # Conversation memory to prevent repetitive questions
         self.asked_questions: list[tuple[str, float]] = []  # (question, timestamp)
         self.question_rotation_index = 0
-        
+
         # Diverse question bank for reasoning probes
         self.reasoning_questions = [
             "How does entropy in thermodynamics relate to technical debt in software systems?",
@@ -93,20 +93,20 @@ class AIOverseer:
                 for question in self.reasoning_questions:
                     if question.lower() in content.lower():
                         recent_questions.add(question)
-        
+
         # Also check our internal question history (last 5 minutes)
         for question, timestamp in self.asked_questions:
             if current_time - timestamp < 300:  # 5 minutes
                 recent_questions.add(question)
-        
+
         # Find a question that hasn't been asked recently
         for i in range(len(self.reasoning_questions)):
             question = self.reasoning_questions[self.question_rotation_index]
             self.question_rotation_index = (self.question_rotation_index + 1) % len(self.reasoning_questions)
-            
+
             if question not in recent_questions:
                 return question
-        
+
         # All questions have been asked recently
         return None
 
@@ -131,10 +131,10 @@ class AIOverseer:
         # Check recent memories to avoid repetitive questions
         recent_memories = student_state.get("recent_memories", [])
         current_time = time.time()
-        
+
         # Clean up old question history (older than 1 hour)
         self.asked_questions = [
-            (q, t) for q, t in self.asked_questions 
+            (q, t) for q, t in self.asked_questions
             if current_time - t < 3600
         ]
 

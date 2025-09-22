@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
-from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter, Histogram
+from prometheus_fastapi_instrumentator import Instrumentator
 
 _instrumentator = Instrumentator(should_instrument_requests_inprogress=True)
 _configured_apps: set[int] = set()

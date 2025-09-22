@@ -10,7 +10,6 @@ from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from starlette.routing import Mount, WebSocketRoute
 
-
 log = logging.getLogger(__name__)
 
 

@@ -33,10 +33,10 @@ def require_admin_token(token: str | None = Security(_admin_scheme)) -> None:
     """Validate the admin token header for sensitive routes."""
     import logging
     log = logging.getLogger(__name__)
-    
+
     expected = os.getenv("ADMIN_TOKEN")
     log.info(f"Admin token validation - Expected: {bool(expected)}, Received: {bool(token)}")
-    
+
     if expected:
         if token != expected:
             log.warning(f"Invalid admin token - Expected: {expected[:10]}..., Received: {token[:10] if token else 'None'}...")
