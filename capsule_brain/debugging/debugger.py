@@ -1,12 +1,13 @@
 """Advanced debugging system with interactive debugging capabilities."""
 
 import asyncio
+import functools
 import logging
 import pdb
 import sys
 import traceback
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from datetime import datetime
 
 log = logging.getLogger(__name__)
@@ -157,6 +158,7 @@ debugger = Debugger(enabled=False)
 def debug_breakpoint(filename: str, line_number: int) -> None:
     """Decorator to add breakpoint checking to functions."""
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if debugger.check_breakpoint(filename, line_number):
                 debugger.interactive_debug()

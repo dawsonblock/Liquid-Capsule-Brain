@@ -4,6 +4,7 @@ import asyncio
 import logging
 import psutil
 import time
+import traceback
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
@@ -67,7 +68,10 @@ class HealthChecker:
                     message=f"Health check failed: {str(e)}",
                     timestamp=datetime.now(),
                     component="health_checker",
-                    details={"error": str(e), "traceback": str(e.__traceback__)}
+                    details={
+                        "error": str(e), 
+                        "traceback": traceback.format_exc()
+                    }
                 )
                 results.append(error_result)
                 log.error(f"Health check {check_name} failed: {e}")

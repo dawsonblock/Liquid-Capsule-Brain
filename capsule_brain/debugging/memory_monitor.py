@@ -22,6 +22,9 @@ class MemoryMonitor:
         self.object_counts: Dict[str, int] = {}
         self.max_snapshots = 100
         self.tracemalloc_started = False
+        # Track garbage collection counts over time
+        self._initial_gc_counts = None
+        self._last_gc_counts = None
         
     def start_monitoring(self) -> None:
         """Start memory monitoring."""
@@ -31,6 +34,9 @@ class MemoryMonitor:
         if not self.tracemalloc_started:
             tracemalloc.start()
             self.tracemalloc_started = True
+            # Initialize GC collection tracking
+            self._initial_gc_counts = gc.get_count()
+            self._last_gc_counts = tuple(self._initial_gc_counts)
             log.info("Memory monitoring started")
     
     def stop_monitoring(self) -> None:
@@ -154,6 +160,10 @@ class MemoryMonitor:
         collected = gc.collect()
         after_counts = gc.get_count()
         
+        # Update collection tracking
+        if self._last_gc_counts is not None:
+            self._last_gc_counts = after_counts
+        
         stats = {
             "collected_objects": collected,
             "before_counts": before_counts,
@@ -243,13 +253,24 @@ class MemoryMonitor:
         if len(self.memory_snapshots) < 2:
             return {}
         
-        total_collections = sum(gc.get_count())
+        # Calculate actual collection counts since monitoring started
+        current_counts = gc.get_count()
+        if self._initial_gc_counts is not None:
+            # Calculate collections by generation (current - initial)
+            collection_counts = tuple(c - i for c, i in zip(current_counts, self._initial_gc_counts))
+            total_collections = sum(collection_counts)
+        else:
+            # Fallback: use current object counts if tracking not initialized
+            collection_counts = current_counts
+            total_collections = sum(current_counts)
+        
         time_span = self._calculate_time_span()
         
         return {
             "total_collections": total_collections,
             "collections_per_second": total_collections / max(time_span, 1),
-            "current_generation_counts": gc.get_count(),
+            "collection_counts_by_generation": collection_counts,
+            "current_object_counts": current_counts,
             "thresholds": gc.get_threshold()
         }
     

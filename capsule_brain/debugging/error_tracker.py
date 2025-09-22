@@ -102,7 +102,16 @@ class ErrorTracker:
     def _get_stack_trace(self) -> List[Dict[str, str]]:
         """Get current stack trace as structured data."""
         stack = []
-        for frame in traceback.extract_tb(sys.exc_info()[2]):
+        exc_tb = sys.exc_info()[2]
+        
+        if exc_tb is None:
+            # Called outside exception context, use current stack
+            frames = traceback.extract_stack()
+        else:
+            # Called within exception context, use exception traceback
+            frames = traceback.extract_tb(exc_tb)
+        
+        for frame in frames:
             stack.append({
                 "filename": frame.filename,
                 "line_number": frame.lineno,
@@ -178,7 +187,7 @@ class ErrorTracker:
         ]
         
         if len(recent_same_severity) >= threshold:
-            self._trigger_alert(error_data, recent_same_same_severity)
+            self._trigger_alert(error_data, recent_same_severity)
     
     def _trigger_alert(self, error_data: Dict[str, Any], recent_errors: List[Dict[str, Any]]) -> None:
         """Trigger an alert for error threshold breach."""

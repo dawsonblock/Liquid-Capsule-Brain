@@ -71,9 +71,17 @@ class PerformanceMonitor:
                 "critical": 0.20  # 20%
             },
             "throughput": {
-                "warning": 10.0,  # 10 requests/second
-                "critical": 1.0   # 1 request/second
+                "warning": 1.0,   # 1 req/s (low throughput is bad)
+                "critical": 0.1   # 0.1 req/s (very low throughput is critical)
             }
+        }
+        
+        # Define which metrics are "lower is worse" vs "higher is worse"
+        self.metric_directions = {
+            "memory_usage": "higher_is_worse",
+            "cpu_usage": "higher_is_worse",
+            "error_rate": "higher_is_worse", 
+            "throughput": "lower_is_worse"
         }
     
     def record_metric(
@@ -98,7 +106,8 @@ class PerformanceMonitor:
             
             # Keep only recent history
             if len(self.performance_history[name]) > 1000:
-                self.performance_history[name] = self.performance_history[name][-1000:]
+                self.performance_history[name] = \
+                self.performance_history[name][-1000:]
             
             # Check thresholds
             self._check_thresholds(metric)
@@ -111,13 +120,24 @@ class PerformanceMonitor:
         thresholds = self.thresholds[metric.name]
         value = metric.value
         
+        # Determine comparison operator based on metric direction
+        direction = self.metric_directions.get(metric.name, "higher_is_worse")
+        if direction == "lower_is_worse":
+            def critical_op(v, t): return v <= t
+            def warning_op(v, t): return v <= t
+        else:  # higher_is_worse
+            def critical_op(v, t): return v >= t
+            def warning_op(v, t): return v >= t
+        
         # Check critical threshold
-        if "critical" in thresholds and value >= thresholds["critical"]:
+        if ("critical" in thresholds and 
+            critical_op(value, thresholds["critical"])):
             self._create_alert(
                 metric, "critical", thresholds["critical"], value
             )
         # Check warning threshold
-        elif "warning" in thresholds and value >= thresholds["warning"]:
+        elif ("warning" in thresholds and 
+              warning_op(value, thresholds["warning"])):
             self._create_alert(
                 metric, "warning", thresholds["warning"], value
             )

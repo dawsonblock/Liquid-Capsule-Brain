@@ -99,7 +99,7 @@ class AdvancedDebugger:
             memory_leaks = self.memory_monitor.detect_memory_leaks()
             
             # Get profiling data
-            profiling_data = {"status": "profiler_available", "enabled": True}
+            profiling_data = self.profiler.get_profiling_summary()
             
             # Calculate overall system health
             overall_health = self._calculate_overall_health(
