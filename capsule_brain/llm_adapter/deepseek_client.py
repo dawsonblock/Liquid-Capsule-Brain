@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any
 
-from openai import OpenAI
+from openai import OpenAI, APIError
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class DeepSeekClient:
             self.client = OpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url,
+                timeout=30.0,  # 30 second timeout
             )
             log.info("DeepSeek V3 client initialized")
 
@@ -80,10 +82,17 @@ class DeepSeekClient:
                 }
             }
 
-        except Exception as exc:
+        except APIError as exc:
             log.error("DeepSeek API error: %s", exc)
             return {
-                "text": f"[DeepSeek Error] API call failed: {str(exc)}",
+                "text": f"[DeepSeek API Error] {exc.message or str(exc)}",
+                "model": "error",
+                "usage": {"total_tokens": 0}
+            }
+        except Exception as exc:
+            log.error("DeepSeek unexpected error: %s", exc)
+            return {
+                "text": f"[DeepSeek Error] Unexpected error: {str(exc)}",
                 "model": "error",
                 "usage": {"total_tokens": 0}
             }
@@ -133,3 +142,4 @@ class DeepSeekClient:
                 "text": f"[DeepSeek Error] Streaming failed: {str(exc)}",
                 "done": True
             }
+

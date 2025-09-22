@@ -7,6 +7,7 @@ import zipfile
 from typing import Any
 
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
 MAX_BYTES = 10 * 1024 * 1024  # 10 MB safety cap per upload
 MAX_PREVIEW_CHARS = 4000
@@ -38,6 +39,9 @@ def _extract_text_from_pdf_bytes(data: bytes) -> str:
                 print(f"Warning: Could not extract text from page {i+1}: {e}")
                 continue
         return "\n\n".join(parts)
+    except PdfReadError as e:
+        print(f"Warning: PDF read error: {e}")
+        return f"[PDF read error: {e}]"
     except Exception as e:
         print(f"Warning: PDF extraction failed: {e}")
         return f"[PDF extraction failed: {e}]"

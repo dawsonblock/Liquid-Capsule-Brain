@@ -1,6 +1,6 @@
 # Developer toolchain
 pytest==8.2.1
-pytest-asyncio
+pytest-asyncio==0.23.7
 coverage==7.6.1
 black==24.8.0
 isort==5.13.2

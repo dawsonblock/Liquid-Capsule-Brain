@@ -11,4 +11,5 @@ RUN pip install --no-cache-dir \
 COPY . .
 RUN useradd --create-home --shell /bin/bash agi_user
 USER agi_user
+EXPOSE 8000
 CMD ["python","launch_capsule_brain.py"]
