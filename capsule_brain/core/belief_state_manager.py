@@ -53,7 +53,7 @@ class BeliefStateManager:
             f"Query: {self.current_query}",
             f"Retrieved: {' | '.join(self.retrieved_knowledge[:5])}",
             f"Plan keys: {list(self.current_plan.keys())}",
-            f"Self-metrics: phi={self.self_awareness_metrics.get("phi", 0.0):.2f}",
+            f"Self-metrics: phi={self.self_awareness_metrics.get('phi', 0.0):.2f}",
         ]
 
         # Add recent conversation context

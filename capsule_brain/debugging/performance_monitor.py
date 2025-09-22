@@ -1,6 +1,7 @@
 """Performance monitoring and optimization system."""
 
 import asyncio
+import functools
 import logging
 import time
 from datetime import datetime, timedelta
@@ -431,10 +432,11 @@ class PerformanceMonitor:
 performance_monitor = PerformanceMonitor()
 
 
-def monitor_performance(metric_name: str, component: str = "unknown"):
+def monitor_performance(metric_name: str, component: str = "unknown") -> Callable:
     """Decorator to monitor function performance."""
-    def decorator(func):
-        async def async_wrapper(*args, **kwargs):
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             try:
                 result = await func(*args, **kwargs)
@@ -443,14 +445,15 @@ def monitor_performance(metric_name: str, component: str = "unknown"):
                     metric_name, duration, component
                 )
                 return result
-            except Exception as e:
+            except Exception:
                 duration = time.time() - start_time
                 performance_monitor.record_metric(
                     f"{metric_name}_error", duration, component
                 )
                 raise
         
-        def sync_wrapper(*args, **kwargs):
+        @functools.wraps(func)
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             try:
                 result = func(*args, **kwargs)
@@ -459,7 +462,7 @@ def monitor_performance(metric_name: str, component: str = "unknown"):
                     metric_name, duration, component
                 )
                 return result
-            except Exception as e:
+            except Exception:
                 duration = time.time() - start_time
                 performance_monitor.record_metric(
                     f"{metric_name}_error", duration, component
@@ -474,6 +477,6 @@ def monitor_performance(metric_name: str, component: str = "unknown"):
     return decorator
 
 
-def record_metric(name: str, value: float, component: str = "unknown", **metadata):
+def record_metric(name: str, value: float, component: str = "unknown", **metadata) -> None:
     """Convenience function to record a metric."""
     performance_monitor.record_metric(name, value, component, metadata)

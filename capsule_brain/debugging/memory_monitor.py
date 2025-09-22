@@ -59,7 +59,7 @@ class MemoryMonitor:
                 "traced_current": current,
                 "traced_peak": peak,
                 "traced_difference": current - (self.memory_snapshots[-1]["traced_current"] 
-                                               if self.memory_snapshots else 0)
+                                               if self.memory_snapshots and "traced_current" in self.memory_snapshots[-1] else 0)
             })
         
         self.memory_snapshots.append(snapshot)
