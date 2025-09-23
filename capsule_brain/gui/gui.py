@@ -1,14 +1,19 @@
 import asyncio
 import json
 import logging
+import os
+import time
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from starlette.routing import Mount, WebSocketRoute
+
+from .performance import gui_performance
+from .security import gui_security
 
 log = logging.getLogger(__name__)
 
@@ -19,25 +24,28 @@ class AdvancedGUI:
         self.app = app
         self._clients: set[WebSocket] = set()
         self._setup_routes()
+        self._setup_performance()
 
     def _setup_routes(self) -> None:
         static_path = Path(__file__).parent / "static"
 
-        if not any(
-            isinstance(route, Mount) and route.path == "/static" for route in self.app.router.routes
-        ):
+        # Always mount static files (FastAPI handles duplicates gracefully)
+        try:
             self.app.mount("/static", StaticFiles(directory=static_path), name="static")
+        except Exception:
+            # Static files already mounted, continue
+            pass
 
+        # Add root route if not exists
         if not any(
             isinstance(route, APIRoute) and route.path == "/" for route in self.app.router.routes
         ):
-
             async def root() -> FileResponse:
                 return FileResponse(static_path / "index.html")
 
             self.app.add_api_route("/", root, include_in_schema=False)
 
-        # Add mobile route
+        # Add mobile route if not exists
         if not any(
             isinstance(route, APIRoute) and route.path == "/mobile"
             for route in self.app.router.routes
@@ -66,13 +74,8 @@ class AdvancedGUI:
                 try:
                     while True:
                         data = await websocket.receive_text()
-                        if self.engine.bus:
-                            await self.engine.bus.put(
-                                {
-                                    "type": "user_chat_message",
-                                    "payload": {"text": data},
-                                }
-                            )
+                        # Use the new message handling method
+                        await self.handle_websocket_message(websocket, data)
                 except WebSocketDisconnect:
                     log.debug("WebSocket client disconnected")
                 except asyncio.CancelledError:
@@ -118,3 +121,97 @@ class AdvancedGUI:
                 if self.engine.is_shutting_down:
                     break
                 await asyncio.sleep(1)
+
+
+    def _setup_performance(self) -> None:
+        """Setup GUI performance features."""
+        log.info("Setting up GUI performance features")
+
+        # Start performance monitoring
+        asyncio.create_task(gui_performance.start_performance_monitoring())
+
+    async def handle_websocket_message(self, websocket: WebSocket, message: str) -> None:
+        """Handle incoming WebSocket message with security validation."""
+        try:
+            # Validate message
+            if not gui_security.validate_websocket_message(message):
+                log.warning("Invalid WebSocket message rejected")
+                await websocket.send_json({"type": "error", "message": "Invalid message format"})
+                return
+
+            # Parse JSON
+            data = json.loads(message)
+
+            # Sanitize user input
+            if "data" in data and isinstance(data["data"], str):
+                data["data"] = gui_security.sanitize_user_input(data["data"])
+
+            # Add to performance queue
+            await gui_performance.add_message(data)
+
+            # Process message
+            await self._process_websocket_message(websocket, data)
+
+        except json.JSONDecodeError:
+            log.warning("Invalid JSON in WebSocket message")
+            await websocket.send_json({"type": "error", "message": "Invalid JSON format"})
+        except Exception as e:
+            log.error(f"Error processing WebSocket message: {e}")
+            await websocket.send_json({"type": "error", "message": "Internal server error"})
+
+    async def _process_websocket_message(self, websocket: WebSocket, data: dict[str, Any]) -> None:
+        """Process validated WebSocket message."""
+        message_type = data.get("type", "unknown")
+
+        if message_type == "ping":
+            await websocket.send_json({"type": "pong", "timestamp": time.time()})
+        elif message_type == "get_stats":
+            stats = gui_performance.get_performance_stats()
+            await websocket.send_json({"type": "stats", "data": stats})
+        elif message_type == "get_system_info":
+            system_info = await self._get_system_info()
+            await websocket.send_json({"type": "system_info", "data": system_info})
+        else:
+            # Default: broadcast to all clients
+            await self.broadcast(data)
+
+    async def _get_system_info(self) -> dict[str, Any]:
+        """Get current system information."""
+        return {
+            "uptime": time.time() - self.engine.start_time,
+            "memory_items": len(self.engine.memory),
+            "phi_value": getattr(self.engine.iit_analyzer, "phi", 0.0),
+            "graph_nodes": (
+                len(self.engine.knowledge_graph.nodes)
+                if hasattr(self.engine.knowledge_graph, "nodes")
+                else 0
+            ),
+            "overseer_enabled": self.engine.overseer_enabled,
+            "connected_clients": len(self._clients),
+            "performance_stats": gui_performance.get_performance_stats(),
+        }
+
+    def get_deployment_info(self) -> dict[str, Any]:
+        """Get deployment information for the GUI."""
+        return {
+            "version": "1.0.1",
+            "environment": os.getenv("APP_ENV", "development"),
+            "debug_mode": os.getenv("APP_ENV", "development").lower()
+            in {"local", "development", "dev"},
+            "security_enabled": True,
+            "performance_monitoring": True,
+            "features": {
+                "websocket": True,
+                "file_upload": True,
+                "real_time_updates": True,
+                "mobile_support": True,
+                "dark_mode": True,
+                "analytics": True,
+            },
+            "limits": {
+                "max_file_size": gui_security.MAX_FILE_SIZE,
+                "allowed_extensions": list(gui_security.ALLOWED_EXTENSIONS),
+                "rate_limit": "60 requests per minute",
+                "websocket_message_limit": 10000,
+            },
+        }
