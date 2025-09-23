@@ -24,7 +24,8 @@ class AdvancedGUI:
         self.app = app
         self._clients: set[WebSocket] = set()
         self._setup_routes()
-        self._setup_performance()
+        # Remove _setup_performance() call to avoid event loop issues
+        # self._setup_performance()
 
     def _setup_routes(self) -> None:
         static_path = Path(__file__).parent / "static"
@@ -122,14 +123,6 @@ class AdvancedGUI:
                     break
                 await asyncio.sleep(1)
 
-
-    def _setup_performance(self) -> None:
-        """Setup GUI performance features."""
-        log.info("Setting up GUI performance features")
-
-        # Start performance monitoring
-        asyncio.create_task(gui_performance.start_performance_monitoring())
-
     async def handle_websocket_message(self, websocket: WebSocket, message: str) -> None:
         """Handle incoming WebSocket message with security validation."""
         try:
@@ -145,9 +138,6 @@ class AdvancedGUI:
             # Sanitize user input
             if "data" in data and isinstance(data["data"], str):
                 data["data"] = gui_security.sanitize_user_input(data["data"])
-
-            # Add to performance queue
-            await gui_performance.add_message(data)
 
             # Process message
             await self._process_websocket_message(websocket, data)
@@ -166,7 +156,7 @@ class AdvancedGUI:
         if message_type == "ping":
             await websocket.send_json({"type": "pong", "timestamp": time.time()})
         elif message_type == "get_stats":
-            stats = gui_performance.get_performance_stats()
+            stats = {"connected_clients": len(self._clients)}
             await websocket.send_json({"type": "stats", "data": stats})
         elif message_type == "get_system_info":
             system_info = await self._get_system_info()
@@ -188,7 +178,6 @@ class AdvancedGUI:
             ),
             "overseer_enabled": self.engine.overseer_enabled,
             "connected_clients": len(self._clients),
-            "performance_stats": gui_performance.get_performance_stats(),
         }
 
     def get_deployment_info(self) -> dict[str, Any]:
@@ -199,7 +188,7 @@ class AdvancedGUI:
             "debug_mode": os.getenv("APP_ENV", "development").lower()
             in {"local", "development", "dev"},
             "security_enabled": True,
-            "performance_monitoring": True,
+            "performance_monitoring": False,  # Disabled to avoid event loop issues
             "features": {
                 "websocket": True,
                 "file_upload": True,

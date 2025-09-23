@@ -34,22 +34,47 @@ from capsule_brain.observability.metrics import (
     setup_metrics,
 )
 from capsule_brain.security.admin import require_admin_token
+from capsule_brain.debugging.advanced_debugger import advanced_debugger
+from capsule_brain.debugging.logging_config import LoggingMiddleware, setup_advanced_logging
+from capsule_brain.debugging.memory_debugger import memory_debugger
+from capsule_brain.debugging.profiler import advanced_profiler
+from capsule_brain.debugging.static_analysis import static_analyzer
+from capsule_brain.enhancements.performance_optimizer import performance_optimizer
+from capsule_brain.enhancements.security_enhancer import security_enhancer
+from capsule_brain.enhancements.monitoring_dashboard import monitoring_dashboard
 
 log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def app_lifespan(fastapi_app: FastAPI) -> AsyncIterator[None]:
+    # Initialize advanced debugging systems
+    setup_advanced_logging()
+    memory_debugger.take_snapshot("app_startup")
+    
     capsule_engine = CapsuleEngine()
     attach_engine(fastapi_app, capsule_engine)
     await capsule_engine.start_background_tasks(fastapi_app)
     gui = AdvancedGUI(capsule_engine, fastapi_app)
     fastapi_app.state.gui = gui
     broadcaster_task = asyncio.create_task(fastapi_app.state.gui.run_broadcasters())
-    log.info("Engine started.")
+    
+    # Take memory snapshot after initialization
+    memory_debugger.take_snapshot("app_initialized")
+    
+    # Start monitoring dashboard
+    await monitoring_dashboard.start_collection()
+    
+    log.info("Engine started with advanced debugging and enhancements enabled.")
     try:
         yield
     finally:
+        # Take final memory snapshot
+        memory_debugger.take_snapshot("app_shutdown")
+        
+        # Stop monitoring dashboard
+        await monitoring_dashboard.stop_collection()
+        
         broadcaster_task.cancel()
         try:
             await broadcaster_task
@@ -77,6 +102,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add advanced logging middleware
+app.add_middleware(LoggingMiddleware)
 
 
 # Add cache control headers for static files
@@ -118,6 +146,8 @@ async def state_summary(engine: EngineDep) -> dict[str, Any]:
 
 
 @app.post("/ask")
+@advanced_debugger.debug_function
+@advanced_profiler.profile_decorator
 async def ask(
     engine: EngineDep,
     payload: AskRequest | None = Body(default=None),  # noqa: B008
@@ -165,6 +195,7 @@ async def ask(
 
 
 @app.post("/ask_with_document")
+@performance_optimizer.cache_decorator(ttl=300)  # Cache for 5 minutes
 async def ask_with_document(
     engine: EngineDep,
     file: UploadFile = File(...),  # noqa: B008
@@ -294,6 +325,107 @@ async def debug_env(request: Request) -> dict[str, Any]:
         "app_env": os.getenv("APP_ENV", "NOT_SET"),
         "app_profile": os.getenv("APP_PROFILE", "NOT_SET"),
     }
+
+
+@app.get("/debug/summary", dependencies=[Depends(require_admin_token)])
+async def debug_summary() -> dict[str, Any]:
+    """Get comprehensive debugging summary."""
+    return {
+        "advanced_debugger": advanced_debugger.get_debug_summary(),
+        "memory_debugger": memory_debugger.get_memory_summary(),
+        "profiler": advanced_profiler.get_profile_summary(),
+        "static_analyzer": static_analyzer.get_analysis_summary(),
+    }
+
+
+@app.get("/debug/memory", dependencies=[Depends(require_admin_token)])
+async def debug_memory() -> dict[str, Any]:
+    """Get memory debugging information."""
+    return memory_debugger.get_memory_summary()
+
+
+@app.get("/debug/performance", dependencies=[Depends(require_admin_token)])
+async def debug_performance() -> dict[str, Any]:
+    """Get performance profiling information."""
+    return advanced_profiler.get_detailed_profile_report()
+
+
+@app.get("/debug/analysis", dependencies=[Depends(require_admin_token)])
+async def debug_analysis() -> dict[str, Any]:
+    """Get static analysis results."""
+    return static_analyzer.get_detailed_report()
+
+
+@app.post("/debug/gc", dependencies=[Depends(require_admin_token)])
+async def debug_garbage_collection() -> dict[str, Any]:
+    """Force garbage collection and return statistics."""
+    return memory_debugger.force_garbage_collection()
+
+
+@app.post("/debug/snapshot", dependencies=[Depends(require_admin_token)])
+async def debug_snapshot(label: str = "manual") -> dict[str, Any]:
+    """Take a memory snapshot."""
+    snapshot = memory_debugger.take_snapshot(label)
+    return {
+        "snapshot_taken": True,
+        "label": label,
+        "timestamp": snapshot.timestamp,
+        "memory_usage_mb": snapshot.memory_usage / 1024 / 1024,
+        "objects_count": snapshot.objects_count,
+    }
+
+
+@app.get("/enhancements/summary", dependencies=[Depends(require_admin_token)])
+async def enhancements_summary() -> dict[str, Any]:
+    """Get comprehensive enhancements summary."""
+    return {
+        "performance_optimizer": performance_optimizer.get_performance_summary(),
+        "security_enhancer": security_enhancer.get_security_summary(),
+        "monitoring_dashboard": monitoring_dashboard.get_dashboard_data(),
+    }
+
+
+@app.get("/enhancements/performance", dependencies=[Depends(require_admin_token)])
+async def enhancements_performance() -> dict[str, Any]:
+    """Get performance optimization information."""
+    return performance_optimizer.get_performance_summary()
+
+
+@app.get("/enhancements/security", dependencies=[Depends(require_admin_token)])
+async def enhancements_security() -> dict[str, Any]:
+    """Get security enhancement information."""
+    return security_enhancer.get_security_summary()
+
+
+@app.get("/enhancements/monitoring", dependencies=[Depends(require_admin_token)])
+async def enhancements_monitoring() -> dict[str, Any]:
+    """Get monitoring dashboard information."""
+    return monitoring_dashboard.get_dashboard_data()
+
+
+@app.get("/enhancements/health", dependencies=[Depends(require_admin_token)])
+async def enhancements_health() -> dict[str, Any]:
+    """Get overall system health status."""
+    return monitoring_dashboard.get_health_status()
+
+
+@app.post("/enhancements/optimize-cache", dependencies=[Depends(require_admin_token)])
+async def optimize_cache() -> dict[str, Any]:
+    """Optimize cache performance."""
+    return performance_optimizer.optimize_cache()
+
+
+@app.post("/enhancements/analyze-security", dependencies=[Depends(require_admin_token)])
+async def analyze_security(request: Request) -> dict[str, Any]:
+    """Analyze request for security threats."""
+    request_data = {
+        "path": request.url.path,
+        "query_string": str(request.query_params),
+        "method": request.method,
+        "source_ip": request.client.host if request.client else "unknown",
+        "headers": dict(request.headers)
+    }
+    return security_enhancer.analyze_request(request_data)
 
 
 @app.post("/graph/edge", dependencies=[Depends(require_admin_token)])

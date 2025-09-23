@@ -2,21 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Capsule Brain Supreme AGI</title>
-  <meta name="description" content="Advanced AI system with consciousness metrics and real-time monitoring" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Capsule Brain Supreme AGI - Advanced AI Interface</title>
+  <meta name="description" content="Advanced AI system with consciousness metrics, real-time monitoring, and modern web interface" />
+  <meta name="keywords" content="AI, artificial intelligence, consciousness, monitoring, dashboard, modern web app" />
+  <meta name="author" content="Capsule Brain Team" />
   <meta name="theme-color" content="#0ea5e9" />
+  <meta name="color-scheme" content="light dark" />
+  
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Capsule Brain Supreme AGI" />
+  <meta property="og:description" content="Advanced AI system with consciousness metrics and real-time monitoring" />
+  <meta property="og:image" content="/static/og-image.png" />
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Capsule Brain Supreme AGI" />
+  <meta name="twitter:description" content="Advanced AI system with consciousness metrics and real-time monitoring" />
   
   <!-- Preload critical resources -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   
   <!-- Styles -->
-  <link rel="stylesheet" href="/static/styles.css?v=3" />
+  <link rel="stylesheet" href="/static/styles.css?v=4" />
   
-  <!-- Icons -->
+  <!-- Icons and Favicons -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+  
+  <!-- Manifest for PWA -->
+  <link rel="manifest" href="/static/manifest.json" />
+  
+  <!-- Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
 </head>
 <body>
   <!-- Loading Screen -->
@@ -29,96 +52,167 @@
   </div>
 
   <!-- Main App -->
-  <div id="app" class="app-container" style="display: none;">
+  <div id="app" class="app-container" style="display: none;" role="application" aria-label="Capsule Brain AI Interface">
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <header class="sidebar-header">
         <div class="logo-container">
-          <div class="logo">🧠</div>
+          <div class="logo" role="img" aria-label="Capsule Brain Logo">🧠</div>
           <div class="logo-text">
             <h1>Capsule Brain</h1>
-            <span class="version">v1.0.1</span>
+            <span class="version" aria-label="Version 1.0.1">v1.0.1</span>
           </div>
         </div>
         <div class="header-actions">
-          <a href="/mobile" class="mobile-link" title="Mobile Access">
-            <span class="mobile-icon">📱</span>
+          <a href="/mobile" class="mobile-link" title="Mobile Access" aria-label="Open mobile version">
+            <span class="mobile-icon" role="img" aria-label="Mobile">📱</span>
           </a>
-          <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
-            <span class="theme-icon">🌙</span>
+          <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark/light theme" aria-pressed="false">
+            <span class="theme-icon" role="img" aria-label="Theme toggle">🌙</span>
+          </button>
+          <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
+            <span class="hamburger-icon" role="img" aria-label="Menu">☰</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <nav class="sidebar-nav">
-        <button class="nav-item active" data-panel="chat">
-          <span class="nav-icon">💬</span>
+      <nav class="sidebar-nav" role="tablist" aria-label="Main navigation tabs">
+        <button class="nav-item active" data-panel="chat" role="tab" aria-selected="true" aria-controls="chatPanel" tabindex="0">
+          <span class="nav-icon" role="img" aria-label="Chat">💬</span>
           <span class="nav-text">Chat</span>
+          <span class="nav-badge" id="chatBadge" aria-label="New messages" style="display: none;">0</span>
         </button>
-        <button class="nav-item" data-panel="system">
-          <span class="nav-icon">📊</span>
+        <button class="nav-item" data-panel="system" role="tab" aria-selected="false" aria-controls="systemPanel" tabindex="-1">
+          <span class="nav-icon" role="img" aria-label="System">📊</span>
           <span class="nav-text">System</span>
         </button>
-        <button class="nav-item" data-panel="thinking">
-          <span class="nav-icon">🧠</span>
+        <button class="nav-item" data-panel="thinking" role="tab" aria-selected="false" aria-controls="thinkingPanel" tabindex="-1">
+          <span class="nav-icon" role="img" aria-label="Thinking">🧠</span>
           <span class="nav-text">Thinking</span>
+          <span class="nav-indicator" id="thinkingIndicator" aria-label="AI is thinking" style="display: none;">⚡</span>
         </button>
-        <button class="nav-item" data-panel="analytics">
-          <span class="nav-icon">📈</span>
+        <button class="nav-item" data-panel="analytics" role="tab" aria-selected="false" aria-controls="analyticsPanel" tabindex="-1">
+          <span class="nav-icon" role="img" aria-label="Analytics">📈</span>
           <span class="nav-text">Analytics</span>
         </button>
-        <button class="nav-item" data-panel="settings">
-          <span class="nav-icon">⚙️</span>
+        <button class="nav-item" data-panel="settings" role="tab" aria-selected="false" aria-controls="settingsPanel" tabindex="-1">
+          <span class="nav-icon" role="img" aria-label="Settings">⚙️</span>
           <span class="nav-text">Settings</span>
         </button>
       </nav>
 
-      <div class="sidebar-footer">
-        <div class="connection-status" id="connectionStatus">
+      <footer class="sidebar-footer">
+        <div class="connection-status" id="connectionStatus" role="status" aria-live="polite">
           <div class="status-indicator">
-            <span class="status-dot" id="statusDot"></span>
+            <span class="status-dot" id="statusDot" aria-label="Connection status"></span>
             <span id="statusText">Connecting...</span>
           </div>
         </div>
-      </div>
+        <div class="sidebar-footer-actions">
+          <button id="fullscreenToggle" class="footer-action" title="Toggle fullscreen" aria-label="Toggle fullscreen">
+            <span class="footer-icon">⛶</span>
+          </button>
+          <button id="helpToggle" class="footer-action" title="Help" aria-label="Open help">
+            <span class="footer-icon">❓</span>
+          </button>
+        </div>
+      </footer>
     </aside>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" id="main-content" role="main">
       <!-- Chat Panel -->
-      <div class="panel chat-panel active" id="chatPanel">
-        <div class="chat-messages" id="chatMessages">
-          <div class="message assistant">
-            <div class="message-avatar">AI</div>
+      <section class="panel chat-panel active" id="chatPanel" role="tabpanel" aria-labelledby="chat-tab" aria-hidden="false">
+        <header class="panel-header">
+          <h2 class="panel-title">AI Chat Interface</h2>
+          <div class="panel-actions">
+            <button id="clearChat" class="btn btn-secondary btn-sm" title="Clear chat history" aria-label="Clear chat history">
+              <span class="btn-icon">🗑️</span>
+              Clear
+            </button>
+            <button id="exportChat" class="btn btn-secondary btn-sm" title="Export chat" aria-label="Export chat history">
+              <span class="btn-icon">💾</span>
+              Export
+            </button>
+            <button id="chatSettings" class="btn btn-secondary btn-sm" title="Chat settings" aria-label="Open chat settings">
+              <span class="btn-icon">⚙️</span>
+            </button>
+          </div>
+        </header>
+        
+        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
+          <div class="message assistant" role="article" aria-label="AI assistant message">
+            <div class="message-avatar" role="img" aria-label="AI Assistant">AI</div>
             <div class="message-content">
-              <p class="message-text">Hello! I'm Capsule Brain Supreme AGI. How can I assist you today?</p>
-              <div class="message-time" id="welcomeTime"></div>
+              <div class="message-header">
+                <span class="message-sender">Capsule Brain AI</span>
+                <span class="message-time" id="welcomeTime" aria-label="Message timestamp"></span>
+              </div>
+              <div class="message-text">
+                <p>Hello! I'm Capsule Brain Supreme AGI. How can I assist you today?</p>
+              </div>
+              <div class="message-actions">
+                <button class="message-action" title="Copy message" aria-label="Copy this message">
+                  <span>📋</span>
+                </button>
+                <button class="message-action" title="Like message" aria-label="Like this message">
+                  <span>👍</span>
+                </button>
+                <button class="message-action" title="Regenerate response" aria-label="Regenerate this response">
+                  <span>🔄</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
         
         <div class="chat-input-container">
-          <div class="file-upload-area" id="fileUploadArea">
-            <span class="file-upload-icon">📎</span>
+          <div class="file-upload-area" id="fileUploadArea" role="button" tabindex="0" aria-label="Upload files">
+            <span class="file-upload-icon" role="img" aria-label="Upload">📎</span>
             <span class="file-upload-text">Drop files here or click to upload</span>
-            <input type="file" id="fileInput" multiple accept=".pdf,.txt,.zip" style="display: none;" />
+            <input type="file" id="fileInput" multiple accept=".pdf,.txt,.zip,.doc,.docx,.md" style="display: none;" aria-label="Select files to upload" />
           </div>
           
-          <div class="file-list" id="fileList" style="display: none;"></div>
+          <div class="file-list" id="fileList" role="list" aria-label="Uploaded files" style="display: none;"></div>
           
           <div class="chat-input-wrapper">
-            <textarea 
-              id="messageInput" 
-              placeholder="Ask me anything..." 
-              rows="1"
-              maxlength="4000"
-            ></textarea>
-            <button id="sendButton" class="btn btn-primary btn-icon" title="Send message">
-              <span>📤</span>
+            <div class="input-actions">
+              <button id="attachFile" class="input-action" title="Attach file" aria-label="Attach file">
+                <span>📎</span>
+              </button>
+              <button id="voiceInput" class="input-action" title="Voice input" aria-label="Start voice input">
+                <span>🎤</span>
+              </button>
+              <button id="emojiPicker" class="input-action" title="Add emoji" aria-label="Open emoji picker">
+                <span>😊</span>
+              </button>
+            </div>
+            <div class="input-container">
+              <textarea 
+                id="messageInput" 
+                placeholder="Ask me anything... (Press Ctrl+Enter to send)" 
+                rows="1"
+                maxlength="4000"
+                aria-label="Type your message"
+                autocomplete="off"
+                spellcheck="true"
+              ></textarea>
+              <div class="input-footer">
+                <span class="char-count" id="charCount">0/4000</span>
+                <div class="input-shortcuts">
+                  <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to send
+                </div>
+              </div>
+            </div>
+            <button id="sendButton" class="btn btn-primary btn-icon" title="Send message (Ctrl+Enter)" aria-label="Send message">
+              <span class="btn-icon">📤</span>
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- System Panel -->
       <div class="panel system-panel" id="systemPanel">
@@ -351,8 +445,66 @@
     </main>
   </div>
 
+  <!-- Notification Toast Container -->
+  <div id="notificationContainer" class="notification-container" role="alert" aria-live="assertive"></div>
+  
+  <!-- Modal Container -->
+  <div id="modalContainer" class="modal-container" role="dialog" aria-hidden="true"></div>
+  
+  <!-- Keyboard Shortcuts Help -->
+  <div id="keyboardShortcuts" class="keyboard-shortcuts" role="dialog" aria-hidden="true" aria-labelledby="shortcuts-title">
+    <div class="shortcuts-content">
+      <header class="shortcuts-header">
+        <h3 id="shortcuts-title">Keyboard Shortcuts</h3>
+        <button id="closeShortcuts" class="close-btn" aria-label="Close shortcuts">×</button>
+      </header>
+      <div class="shortcuts-list">
+        <div class="shortcut-item">
+          <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
+          <span>Send message</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>Ctrl</kbd> + <kbd>K</kbd>
+          <span>Focus search</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>Ctrl</kbd> + <kbd>/</kbd>
+          <span>Show shortcuts</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>Ctrl</kbd> + <kbd>D</kbd>
+          <span>Toggle dark mode</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>Ctrl</kbd> + <kbd>F</kbd>
+          <span>Focus input</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>Esc</kbd>
+          <span>Close modals</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/static/app.js?v=3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="/static/app.js?v=4"></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+  </script>
 </body>
 </html>

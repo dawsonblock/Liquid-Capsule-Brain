@@ -15,8 +15,8 @@ class GUIPerformanceManager:
 
     def __init__(self) -> None:
         """Initialize GUI performance manager."""
-        self.message_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=1000)
-        self.broadcast_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=500)
+        self.message_queue: asyncio.Queue[dict[str, Any]] | None = None
+        self.broadcast_queue: asyncio.Queue[dict[str, Any]] | None = None
         self.connected_clients: set[WebSocket] = set()
         self.message_stats: dict[str, int] = {
             "total_messages": 0,
@@ -31,6 +31,14 @@ class GUIPerformanceManager:
         }
         self.last_cleanup = time.time()
         self.cleanup_interval = 300  # 5 minutes
+        self._initialized = False
+
+    def _ensure_initialized(self) -> None:
+        """Ensure queues are initialized in the current event loop."""
+        if not self._initialized:
+            self.message_queue = asyncio.Queue(maxsize=1000)
+            self.broadcast_queue = asyncio.Queue(maxsize=500)
+            self._initialized = True
 
     async def add_message(self, message: dict[str, Any]) -> bool:
         """Add message to processing queue.
@@ -41,6 +49,7 @@ class GUIPerformanceManager:
         Returns:
             True if added successfully, False if queue is full
         """
+        self._ensure_initialized()
         try:
             self.message_queue.put_nowait(message)
             self.message_stats["total_messages"] += 1
@@ -59,6 +68,7 @@ class GUIPerformanceManager:
         Returns:
             True if added successfully, False if queue is full
         """
+        self._ensure_initialized()
         try:
             self.broadcast_queue.put_nowait(message)
             return True
@@ -68,6 +78,7 @@ class GUIPerformanceManager:
 
     async def process_messages(self) -> None:
         """Process messages from the queue."""
+        self._ensure_initialized()
         while True:
             try:
                 # Wait for message with timeout
@@ -89,6 +100,7 @@ class GUIPerformanceManager:
 
     async def broadcast_messages(self) -> None:
         """Broadcast messages to all connected clients."""
+        self._ensure_initialized()
         while True:
             try:
                 # Wait for broadcast message with timeout
@@ -202,9 +214,12 @@ class GUIPerformanceManager:
         current_time = time.time()
 
         # Update queue size
-        self.performance_metrics["queue_size"] = (
-            self.message_queue.qsize() + self.broadcast_queue.qsize()
-        )
+        if self._initialized:
+            self.performance_metrics["queue_size"] = (
+                self.message_queue.qsize() + self.broadcast_queue.qsize()
+            )
+        else:
+            self.performance_metrics["queue_size"] = 0
 
         # Cleanup old data periodically
         if current_time - self.last_cleanup > self.cleanup_interval:
@@ -216,8 +231,8 @@ class GUIPerformanceManager:
             "message_stats": self.message_stats.copy(),
             "connected_clients": len(self.connected_clients),
             "queue_sizes": {
-                "message_queue": self.message_queue.qsize(),
-                "broadcast_queue": self.broadcast_queue.qsize(),
+                "message_queue": self.message_queue.qsize() if self._initialized else 0,
+                "broadcast_queue": self.broadcast_queue.qsize() if self._initialized else 0,
             },
         }
 

@@ -6,18 +6,18 @@ from .error_tracker import ErrorTracker, error_tracker
 from .health_checker import HealthChecker, health_checker
 from .memory_monitor import MemoryMonitor, memory_monitor
 from .performance_monitor import PerformanceMonitor, performance_monitor
-from .profiler import Profiler
+from .profiler import AdvancedProfiler, advanced_profiler
 
 __all__ = [
     "Debugger",
-    "Profiler",
+    "AdvancedProfiler",
     "MemoryMonitor",
     "ErrorTracker",
     "PerformanceMonitor",
     "HealthChecker",
     "AdvancedDebugger",
     "debugger",
-    "profiler",
+    "advanced_profiler",
     "memory_monitor",
     "error_tracker",
     "performance_monitor",

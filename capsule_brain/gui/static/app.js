@@ -1,6 +1,7 @@
 /**
  * Modern Capsule Brain GUI Application
  * Enhanced with modern JavaScript features, better UX, and advanced functionality
+ * Version 4.0 - PWA Ready with Advanced Features
  */
 
 class CapsuleBrainApp {
@@ -14,6 +15,15 @@ class CapsuleBrainApp {
     this.notifications = [];
     this.fileList = [];
     this.messageHistory = [];
+    this.keyboardShortcuts = new Map();
+    this.modalStack = [];
+    this.voiceRecognition = null;
+    this.emojiPicker = null;
+    this.isFullscreen = false;
+    this.isSidebarCollapsed = false;
+    this.connectionRetryCount = 0;
+    this.maxRetries = 5;
+    this.retryDelay = 1000;
     
     this.init();
   }
@@ -1202,3 +1212,547 @@ window.addEventListener('resize', () => {
     });
   }
 });
+
+// ===== MODERN GUI ENHANCEMENTS =====
+
+// Enhanced Keyboard Shortcuts
+CapsuleBrainApp.prototype.setupKeyboardShortcuts = function() {
+  this.keyboardShortcuts.set('ctrl+enter', () => this.sendMessage());
+  this.keyboardShortcuts.set('ctrl+k', () => this.focusSearch());
+  this.keyboardShortcuts.set('ctrl+/', () => this.showKeyboardShortcuts());
+  this.keyboardShortcuts.set('ctrl+d', () => this.toggleTheme());
+  this.keyboardShortcuts.set('ctrl+f', () => this.focusInput());
+  this.keyboardShortcuts.set('escape', () => this.closeModals());
+  this.keyboardShortcuts.set('ctrl+1', () => this.switchPanel('chat'));
+  this.keyboardShortcuts.set('ctrl+2', () => this.switchPanel('system'));
+  this.keyboardShortcuts.set('ctrl+3', () => this.switchPanel('thinking'));
+  this.keyboardShortcuts.set('ctrl+4', () => this.switchPanel('analytics'));
+  this.keyboardShortcuts.set('ctrl+5', () => this.switchPanel('settings'));
+  this.keyboardShortcuts.set('ctrl+shift+h', () => this.toggleSidebar());
+  this.keyboardShortcuts.set('f11', () => this.toggleFullscreen());
+};
+
+// Enhanced Event Listeners
+CapsuleBrainApp.prototype.setupEnhancedEventListeners = function() {
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => this.handleKeyboardShortcut(e));
+  
+  // Enhanced file upload
+  const fileUploadArea = document.getElementById('fileUploadArea');
+  if (fileUploadArea) {
+    fileUploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
+    fileUploadArea.addEventListener('drop', (e) => this.handleFileDrop(e));
+    fileUploadArea.addEventListener('click', () => this.triggerFileUpload());
+  }
+  
+  // Voice input
+  const voiceInput = document.getElementById('voiceInput');
+  if (voiceInput) {
+    voiceInput.addEventListener('click', () => this.toggleVoiceInput());
+  }
+  
+  // Emoji picker
+  const emojiPicker = document.getElementById('emojiPicker');
+  if (emojiPicker) {
+    emojiPicker.addEventListener('click', () => this.toggleEmojiPicker());
+  }
+  
+  // Sidebar toggle
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => this.toggleSidebar());
+  }
+  
+  // Fullscreen toggle
+  const fullscreenToggle = document.getElementById('fullscreenToggle');
+  if (fullscreenToggle) {
+    fullscreenToggle.addEventListener('click', () => this.toggleFullscreen());
+  }
+  
+  // Help toggle
+  const helpToggle = document.getElementById('helpToggle');
+  if (helpToggle) {
+    helpToggle.addEventListener('click', () => this.showKeyboardShortcuts());
+  }
+  
+  // Character count
+  const messageInput = document.getElementById('messageInput');
+  if (messageInput) {
+    messageInput.addEventListener('input', () => this.updateCharacterCount());
+  }
+  
+  // Message actions
+  document.addEventListener('click', (e) => this.handleMessageAction(e));
+  
+  // Panel actions
+  document.addEventListener('click', (e) => this.handlePanelAction(e));
+};
+
+// Keyboard Shortcut Handler
+CapsuleBrainApp.prototype.handleKeyboardShortcut = function(e) {
+  const key = this.getKeyboardShortcutKey(e);
+  const handler = this.keyboardShortcuts.get(key);
+  
+  if (handler) {
+    e.preventDefault();
+    handler();
+  }
+};
+
+// Get Keyboard Shortcut Key
+CapsuleBrainApp.prototype.getKeyboardShortcutKey = function(e) {
+  const keys = [];
+  if (e.ctrlKey) keys.push('ctrl');
+  if (e.shiftKey) keys.push('shift');
+  if (e.altKey) keys.push('alt');
+  if (e.metaKey) keys.push('meta');
+  
+  const key = e.key.toLowerCase();
+  if (key === ' ') keys.push('space');
+  else if (key === 'escape') keys.push('escape');
+  else if (key === 'enter') keys.push('enter');
+  else if (key === 'tab') keys.push('tab');
+  else if (key === 'backspace') keys.push('backspace');
+  else if (key === 'delete') keys.push('delete');
+  else if (key === 'arrowup') keys.push('arrowup');
+  else if (key === 'arrowdown') keys.push('arrowdown');
+  else if (key === 'arrowleft') keys.push('arrowleft');
+  else if (key === 'arrowright') keys.push('arrowright');
+  else if (key.length === 1) keys.push(key);
+  else keys.push(key);
+  
+  return keys.join('+');
+};
+
+// Enhanced File Upload
+CapsuleBrainApp.prototype.handleDragOver = function(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+};
+
+CapsuleBrainApp.prototype.handleFileDrop = function(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  
+  const files = Array.from(e.dataTransfer.files);
+  this.handleFiles(files);
+};
+
+CapsuleBrainApp.prototype.triggerFileUpload = function() {
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) {
+    fileInput.click();
+  }
+};
+
+CapsuleBrainApp.prototype.handleFiles = function(files) {
+  files.forEach(file => {
+    if (this.validateFile(file)) {
+      this.addFileToList(file);
+    } else {
+      this.showNotification(`Invalid file: ${file.name}`, 'error');
+    }
+  });
+};
+
+CapsuleBrainApp.prototype.validateFile = function(file) {
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  const allowedTypes = [
+    'application/pdf',
+    'text/plain',
+    'application/zip',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/markdown'
+  ];
+  
+  return file.size <= maxSize && allowedTypes.includes(file.type);
+};
+
+CapsuleBrainApp.prototype.addFileToList = function(file) {
+  const fileList = document.getElementById('fileList');
+  if (!fileList) return;
+  
+  fileList.style.display = 'block';
+  
+  const fileItem = document.createElement('div');
+  fileItem.className = 'file-item';
+  fileItem.innerHTML = `
+    <span class="file-name">${file.name}</span>
+    <span class="file-size">${this.formatFileSize(file.size)}</span>
+    <button class="file-remove" data-file="${file.name}">×</button>
+  `;
+  
+  fileList.appendChild(fileItem);
+  this.fileList.push(file);
+  
+  // Add remove functionality
+  const removeBtn = fileItem.querySelector('.file-remove');
+  removeBtn.addEventListener('click', () => this.removeFile(file.name));
+};
+
+CapsuleBrainApp.prototype.removeFile = function(fileName) {
+  this.fileList = this.fileList.filter(file => file.name !== fileName);
+  
+  const fileItems = document.querySelectorAll('.file-item');
+  fileItems.forEach(item => {
+    if (item.querySelector(`[data-file="${fileName}"]`)) {
+      item.remove();
+    }
+  });
+  
+  const fileList = document.getElementById('fileList');
+  if (fileList && this.fileList.length === 0) {
+    fileList.style.display = 'none';
+  }
+};
+
+CapsuleBrainApp.prototype.formatFileSize = function(bytes) {
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  if (bytes === 0) return '0 Bytes';
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+};
+
+// Voice Input
+CapsuleBrainApp.prototype.toggleVoiceInput = function() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    this.showNotification('Voice input not supported in this browser', 'warning');
+    return;
+  }
+  
+  if (this.voiceRecognition) {
+    this.stopVoiceInput();
+  } else {
+    this.startVoiceInput();
+  }
+};
+
+CapsuleBrainApp.prototype.startVoiceInput = function() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  this.voiceRecognition = new SpeechRecognition();
+  
+  this.voiceRecognition.continuous = false;
+  this.voiceRecognition.interimResults = false;
+  this.voiceRecognition.lang = 'en-US';
+  
+  this.voiceRecognition.onstart = () => {
+    this.showNotification('Listening...', 'info');
+    document.getElementById('voiceInput').classList.add('recording');
+  };
+  
+  this.voiceRecognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    const messageInput = document.getElementById('messageInput');
+    if (messageInput) {
+      messageInput.value = transcript;
+      this.updateCharacterCount();
+    }
+  };
+  
+  this.voiceRecognition.onend = () => {
+    document.getElementById('voiceInput').classList.remove('recording');
+  };
+  
+  this.voiceRecognition.onerror = (e) => {
+    this.showNotification('Voice input error: ' + e.error, 'error');
+    document.getElementById('voiceInput').classList.remove('recording');
+  };
+  
+  this.voiceRecognition.start();
+};
+
+CapsuleBrainApp.prototype.stopVoiceInput = function() {
+  if (this.voiceRecognition) {
+    this.voiceRecognition.stop();
+    this.voiceRecognition = null;
+  }
+};
+
+// Emoji Picker
+CapsuleBrainApp.prototype.toggleEmojiPicker = function() {
+  // Simple emoji picker implementation
+  const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
+  
+  const picker = document.createElement('div');
+  picker.className = 'emoji-picker';
+  picker.innerHTML = `
+    <div class="emoji-grid">
+      ${emojis.map(emoji => `<span class="emoji-option" data-emoji="${emoji}">${emoji}</span>`).join('')}
+    </div>
+  `;
+  
+  // Position picker
+  const button = document.getElementById('emojiPicker');
+  const rect = button.getBoundingClientRect();
+  picker.style.position = 'fixed';
+  picker.style.top = (rect.bottom + 5) + 'px';
+  picker.style.left = rect.left + 'px';
+  picker.style.zIndex = '1000';
+  
+  document.body.appendChild(picker);
+  
+  // Add click handlers
+  picker.addEventListener('click', (e) => {
+    if (e.target.classList.contains('emoji-option')) {
+      const emoji = e.target.dataset.emoji;
+      const messageInput = document.getElementById('messageInput');
+      if (messageInput) {
+        messageInput.value += emoji;
+        this.updateCharacterCount();
+      }
+      picker.remove();
+    }
+  });
+  
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', () => picker.remove(), { once: true });
+  }, 0);
+};
+
+// Sidebar Management
+CapsuleBrainApp.prototype.toggleSidebar = function() {
+  this.isSidebarCollapsed = !this.isSidebarCollapsed;
+  const sidebar = document.getElementById('sidebar');
+  const toggle = document.getElementById('sidebarToggle');
+  
+  if (sidebar && toggle) {
+    sidebar.setAttribute('aria-expanded', !this.isSidebarCollapsed);
+    toggle.setAttribute('aria-expanded', !this.isSidebarCollapsed);
+    
+    if (this.isSidebarCollapsed) {
+      sidebar.classList.add('collapsed');
+    } else {
+      sidebar.classList.remove('collapsed');
+    }
+  }
+};
+
+// Fullscreen Management
+CapsuleBrainApp.prototype.toggleFullscreen = function() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().then(() => {
+      this.isFullscreen = true;
+      this.showNotification('Entered fullscreen mode', 'info');
+    });
+  } else {
+    document.exitFullscreen().then(() => {
+      this.isFullscreen = false;
+      this.showNotification('Exited fullscreen mode', 'info');
+    });
+  }
+};
+
+// Character Count
+CapsuleBrainApp.prototype.updateCharacterCount = function() {
+  const messageInput = document.getElementById('messageInput');
+  const charCount = document.getElementById('charCount');
+  
+  if (messageInput && charCount) {
+    const count = messageInput.value.length;
+    const maxLength = parseInt(messageInput.getAttribute('maxlength')) || 4000;
+    charCount.textContent = `${count}/${maxLength}`;
+    
+    if (count > maxLength * 0.9) {
+      charCount.style.color = 'var(--warning)';
+    } else if (count > maxLength * 0.8) {
+      charCount.style.color = 'var(--accent-500)';
+    } else {
+      charCount.style.color = 'var(--neutral-500)';
+    }
+  }
+};
+
+// Message Actions
+CapsuleBrainApp.prototype.handleMessageAction = function(e) {
+  if (e.target.closest('.message-action')) {
+    const action = e.target.closest('.message-action');
+    const message = action.closest('.message');
+    const actionType = action.title.toLowerCase();
+    
+    switch (actionType) {
+      case 'copy message':
+        this.copyMessage(message);
+        break;
+      case 'like message':
+        this.likeMessage(message);
+        break;
+      case 'regenerate response':
+        this.regenerateResponse(message);
+        break;
+    }
+  }
+};
+
+CapsuleBrainApp.prototype.copyMessage = function(message) {
+  const text = message.querySelector('.message-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    this.showNotification('Message copied to clipboard', 'success');
+  });
+};
+
+CapsuleBrainApp.prototype.likeMessage = function(message) {
+  const likeBtn = message.querySelector('[title="Like message"]');
+  likeBtn.classList.toggle('liked');
+  likeBtn.textContent = likeBtn.classList.contains('liked') ? '❤️' : '👍';
+  
+  this.showNotification('Message liked!', 'success');
+};
+
+CapsuleBrainApp.prototype.regenerateResponse = function(message) {
+  // Implementation for regenerating AI response
+  this.showNotification('Regenerating response...', 'info');
+  // Add regeneration logic here
+};
+
+// Panel Actions
+CapsuleBrainApp.prototype.handlePanelAction = function(e) {
+  if (e.target.closest('.panel-actions button')) {
+    const button = e.target.closest('.panel-actions button');
+    const action = button.id;
+    
+    switch (action) {
+      case 'clearChat':
+        this.clearChat();
+        break;
+      case 'exportChat':
+        this.exportChat();
+        break;
+      case 'chatSettings':
+        this.showChatSettings();
+        break;
+    }
+  }
+};
+
+CapsuleBrainApp.prototype.clearChat = function() {
+  if (confirm('Are you sure you want to clear the chat history?')) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+      chatMessages.innerHTML = `
+        <div class="message assistant" role="article" aria-label="AI assistant message">
+          <div class="message-avatar" role="img" aria-label="AI Assistant">AI</div>
+          <div class="message-content">
+            <div class="message-header">
+              <span class="message-sender">Capsule Brain AI</span>
+              <span class="message-time" id="welcomeTime" aria-label="Message timestamp"></span>
+            </div>
+            <div class="message-text">
+              <p>Hello! I'm Capsule Brain Supreme AGI. How can I assist you today?</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    this.messageHistory = [];
+    this.showNotification('Chat history cleared', 'success');
+  }
+};
+
+CapsuleBrainApp.prototype.exportChat = function() {
+  const chatData = {
+    timestamp: new Date().toISOString(),
+    messages: this.messageHistory,
+    settings: this.settings
+  };
+  
+  const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `capsule-brain-chat-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  this.showNotification('Chat exported successfully', 'success');
+};
+
+CapsuleBrainApp.prototype.showChatSettings = function() {
+  // Implementation for chat settings modal
+  this.showNotification('Chat settings coming soon!', 'info');
+};
+
+// Keyboard Shortcuts Modal
+CapsuleBrainApp.prototype.showKeyboardShortcuts = function() {
+  const modal = document.getElementById('keyboardShortcuts');
+  if (modal) {
+    modal.setAttribute('aria-hidden', 'false');
+    modal.style.display = 'flex';
+    
+    // Focus management
+    const closeBtn = modal.querySelector('#closeShortcuts');
+    if (closeBtn) {
+      closeBtn.focus();
+    }
+  }
+};
+
+CapsuleBrainApp.prototype.closeModals = function() {
+  // Close all modals
+  const modals = document.querySelectorAll('[role="dialog"][aria-hidden="false"]');
+  modals.forEach(modal => {
+    modal.setAttribute('aria-hidden', 'true');
+    modal.style.display = 'none';
+  });
+  
+  // Focus back to main content
+  const mainContent = document.getElementById('main-content');
+  if (mainContent) {
+    mainContent.focus();
+  }
+};
+
+// Focus Management
+CapsuleBrainApp.prototype.focusSearch = function() {
+  // Implementation for search functionality
+  this.showNotification('Search functionality coming soon!', 'info');
+};
+
+CapsuleBrainApp.prototype.focusInput = function() {
+  const messageInput = document.getElementById('messageInput');
+  if (messageInput) {
+    messageInput.focus();
+  }
+};
+
+// Enhanced Notification System
+CapsuleBrainApp.prototype.showNotification = function(message, type = 'info', duration = 5000) {
+  const container = document.getElementById('notificationContainer');
+  if (!container) return;
+  
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <span class="notification-message">${message}</span>
+      <button class="notification-close" aria-label="Close notification">×</button>
+    </div>
+  `;
+  
+  container.appendChild(notification);
+  
+  // Auto remove
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, duration);
+  
+  // Manual close
+  const closeBtn = notification.querySelector('.notification-close');
+  closeBtn.addEventListener('click', () => notification.remove());
+  
+  // Store reference
+  this.notifications.push(notification);
+};
+
+// Update the existing init method to include new features
+const originalInit = CapsuleBrainApp.prototype.init;
+CapsuleBrainApp.prototype.init = function() {
+  originalInit.call(this);
+  this.setupKeyboardShortcuts();
+  this.setupEnhancedEventListeners();
+  this.updateCharacterCount();
+  console.log('✅ Enhanced Capsule Brain App initialized successfully');
+};

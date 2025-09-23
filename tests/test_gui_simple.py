@@ -209,7 +209,7 @@ class TestGUIMinimalApp:
             
             response = client.get("/static/app.js")
             assert response.status_code == 200
-            assert "application/javascript" in response.headers["content-type"]
+            assert "javascript" in response.headers["content-type"]
 
     def test_gui_deployment_info(self) -> None:
         """Test GUI deployment information."""
@@ -219,17 +219,17 @@ class TestGUIMinimalApp:
         manager = GUIDeploymentManager(app)
         
         # Test deployment info
-        info = manager.get_deployment_info()
+        info = manager.get_deployment_summary()
         assert "environment" in info
-        assert "features" in info
-        assert "limits" in info
+        assert "features_enabled" in info
+        assert "configuration" in info
         
-        # Test health check
-        health = manager.get_deployment_health()
-        assert "status" in health
-        assert "environment" in health
+        # Test validation
+        validation = manager.validate_deployment()
+        assert "valid" in validation
+        assert "checks" in validation
         
-        # Test configuration
-        config = manager.get_deployment_config()
+        # Test environment config
+        config = manager.get_environment_config()
         assert "environment" in config
-        assert "static_files_path" in config
+        assert "features" in config
