@@ -13,7 +13,14 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import psutil
-from memory_profiler import profile as memory_profile
+try:
+    from memory_profiler import profile as memory_profile
+    MEMORY_PROFILER_AVAILABLE = True
+except ImportError:
+    MEMORY_PROFILER_AVAILABLE = False
+    # Create a no-op decorator when memory_profiler is not available
+    def memory_profile(func):
+        return func
 
 log = logging.getLogger(__name__)
 

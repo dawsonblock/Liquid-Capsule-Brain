@@ -18,12 +18,12 @@ class CapsuleBrainUser(HttpUser):
     @task(10)
     def health_check(self) -> None:
         """Check system health (most common operation)."""
-        self.client.get("/health")
+        self.client.get("/healthz", headers=self.headers)
 
     @task(5)
     def debug_status(self) -> None:
         """Check debug status."""
-        self.client.get("/debug/status", headers=self.headers)
+        self.client.get("/debug/summary", headers=self.headers)
 
     @task(3)
     def performance_metrics(self) -> None:
@@ -57,7 +57,7 @@ class CapsuleBrainUser(HttpUser):
         ]
 
         question = random.choice(questions)
-        self.client.post("/ask", json={"question": question})
+        self.client.post("/ask", json={"q": question})
 
     @task(1)
     def get_metrics(self) -> None:
@@ -73,17 +73,16 @@ class HighLoadUser(CapsuleBrainUser):
     @task(20)
     def rapid_health_checks(self) -> None:
         """Rapid health checks."""
-        self.client.get("/health")
+        self.client.get("/healthz", headers=self.headers)
 
     @task(10)
     def debug_operations(self) -> None:
         """Various debug operations."""
         debug_endpoints = [
-            "/debug/status",
-            "/debug/health",
+            "/debug/summary",
             "/debug/performance",
             "/debug/memory",
-            "/debug/errors",
+            "/debug/analysis",
         ]
 
         endpoint = random.choice(debug_endpoints)

@@ -34,6 +34,7 @@ from capsule_brain.observability.metrics import (
     setup_metrics,
 )
 from capsule_brain.security.admin import require_admin_token
+from capsule_brain.security.headers import SecurityHeadersMiddleware
 from capsule_brain.debugging.advanced_debugger import advanced_debugger
 from capsule_brain.debugging.logging_config import LoggingMiddleware, setup_advanced_logging
 from capsule_brain.debugging.memory_debugger import memory_debugger
@@ -92,7 +93,7 @@ app = FastAPI(
 )
 
 # Configure CORS from environment
-_cors = os.getenv("CORS_ORIGINS", "*")
+_cors = os.getenv("CORS_ORIGINS") or os.getenv("ALLOW_ORIGINS", "*")
 origins = ["*"] if _cors == "*" else [o.strip() for o in _cors.split(",") if o.strip()]
 
 app.add_middleware(
@@ -102,6 +103,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Add advanced logging middleware
 app.add_middleware(LoggingMiddleware)
@@ -140,7 +144,7 @@ async def ready(request: Request) -> dict[str, Any]:
     return {"ready": peek_engine(request.app) is not None}
 
 
-@app.get("/state/summary")
+@app.get("/state/summary", dependencies=[Depends(require_admin_token)])
 async def state_summary(engine: EngineDep) -> dict[str, Any]:
     return engine.get_state_summary()
 
@@ -366,6 +370,13 @@ async def debug_garbage_collection() -> dict[str, Any]:
 async def debug_snapshot(label: str = "manual") -> dict[str, Any]:
     """Take a memory snapshot."""
     snapshot = memory_debugger.take_snapshot(label)
+    if snapshot is None:
+        return {
+            "snapshot_taken": False,
+            "debug_enabled": False,
+            "label": label,
+            "message": "Memory debugging is disabled"
+        }
     return {
         "snapshot_taken": True,
         "label": label,
