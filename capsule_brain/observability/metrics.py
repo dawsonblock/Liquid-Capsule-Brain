@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
-from prometheus_client import Counter, Histogram
+from prometheus_client import Counter, Histogram, Gauge
 from prometheus_fastapi_instrumentator import Instrumentator
 
 _instrumentator = Instrumentator(should_instrument_requests_inprogress=True)
@@ -21,6 +21,35 @@ _tokens_per_prompt = Histogram(
     "Tokens per prompt/completion for LLM calls",
     labelnames=("provider", "model", "type"),
     buckets=(1, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192),
+)
+
+# Custom application metrics
+_ask_requests_total = Counter(
+    "cb_ask_requests_total",
+    "Total number of ask requests",
+    labelnames=("status", "error_type"),
+)
+
+_ask_request_duration = Histogram(
+    "cb_ask_request_duration_seconds",
+    "Duration of ask requests",
+    buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0),
+)
+
+_file_uploads_total = Counter(
+    "cb_file_uploads_total",
+    "Total number of file uploads",
+    labelnames=("file_type", "status"),
+)
+
+_active_connections = Gauge(
+    "cb_active_connections",
+    "Number of active WebSocket connections",
+)
+
+_memory_usage_bytes = Gauge(
+    "cb_memory_usage_bytes",
+    "Current memory usage in bytes",
 )
 
 
@@ -68,3 +97,28 @@ def record_llm_tokens(
         _tokens_per_prompt.labels(provider, model, "prompt").observe(p)
     if c:
         _tokens_per_prompt.labels(provider, model, "completion").observe(c)
+
+
+def record_ask_request(status: str, error_type: str = "none") -> None:
+    """Record an ask request."""
+    _ask_requests_total.labels(status=status, error_type=error_type).inc()
+
+
+def record_ask_duration(duration_seconds: float) -> None:
+    """Record ask request duration."""
+    _ask_request_duration.observe(duration_seconds)
+
+
+def record_file_upload(file_type: str, status: str) -> None:
+    """Record a file upload."""
+    _file_uploads_total.labels(file_type=file_type, status=status).inc()
+
+
+def set_active_connections(count: int) -> None:
+    """Set the number of active WebSocket connections."""
+    _active_connections.set(count)
+
+
+def set_memory_usage(bytes_used: int) -> None:
+    """Set current memory usage."""
+    _memory_usage_bytes.set(bytes_used)

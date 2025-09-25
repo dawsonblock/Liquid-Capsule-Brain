@@ -31,10 +31,15 @@ from capsule_brain.gui.gui import AdvancedGUI
 from capsule_brain.ingestion.extractor import extract_bytes
 from capsule_brain.observability.metrics import (
     record_llm_tokens,
+    record_ask_request,
+    record_ask_duration,
+    record_file_upload,
     setup_metrics,
 )
+from capsule_brain.observability.tracing import setup_tracing
 from capsule_brain.security.admin import require_admin_token
 from capsule_brain.security.headers import SecurityHeadersMiddleware
+from capsule_brain.security.rate_limiter import check_rate_limit
 from capsule_brain.debugging.advanced_debugger import advanced_debugger
 from capsule_brain.debugging.logging_config import LoggingMiddleware, setup_advanced_logging
 from capsule_brain.debugging.memory_debugger import memory_debugger
@@ -126,6 +131,7 @@ async def add_cache_control_header(
 
 # Configure Prometheus metrics before app startup
 setup_metrics(app)
+setup_tracing(app)
 
 EngineDep = Annotated[CapsuleEngine, Depends(get_engine)]
 
@@ -135,17 +141,20 @@ class AskRequest(BaseModel):
 
 
 @app.get("/healthz", dependencies=[Depends(require_admin_token)])
-async def healthz() -> dict[str, Any]:
+async def healthz(request: Request) -> dict[str, Any]:
+    check_rate_limit(request)
     return {"ok": True}
 
 
 @app.get("/ready", dependencies=[Depends(require_admin_token)])
 async def ready(request: Request) -> dict[str, Any]:
+    check_rate_limit(request)
     return {"ready": peek_engine(request.app) is not None}
 
 
 @app.get("/state/summary", dependencies=[Depends(require_admin_token)])
-async def state_summary(engine: EngineDep) -> dict[str, Any]:
+async def state_summary(request: Request, engine: EngineDep) -> dict[str, Any]:
+    check_rate_limit(request)
     return engine.get_state_summary()
 
 
@@ -217,7 +226,24 @@ async def ask_with_document(
             raise HTTPException(
                 status_code=413, detail=f"File too large. Maximum size: {MAX_BYTES} bytes"
             )
-        log.info("Processing uploaded file: %s (%d bytes)", file.filename, len(file_content))
+        
+        # Validate content type
+        ALLOWED_CONTENT_TYPES = {
+            "application/pdf",
+            "text/plain",
+            "text/markdown",
+            "application/zip",
+            "text/csv",
+            "application/json",
+        }
+        
+        if file.content_type and file.content_type not in ALLOWED_CONTENT_TYPES:
+            raise HTTPException(
+                status_code=415, 
+                detail=f"Unsupported file type: {file.content_type}. Allowed types: {', '.join(ALLOWED_CONTENT_TYPES)}"
+            )
+        
+        log.info("Processing uploaded file: %s (%d bytes, %s)", file.filename, len(file_content), file.content_type)
 
         # Extract text content from the file
         extracted_text, file_meta = extract_bytes(

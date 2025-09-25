@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
+import random
 from typing import Any
 
 from openai import APIError, OpenAI
@@ -18,6 +20,12 @@ class DeepSeekClient:
         self.api_key = os.getenv("DEEPSEEK_API_KEY")
         self.base_url = "https://api.deepseek.com"
         self.model = "deepseek-chat"
+        
+        # Retry configuration
+        self.max_retries = int(os.getenv("DEEPSEEK_MAX_RETRIES", "3"))
+        self.base_delay = float(os.getenv("DEEPSEEK_BASE_DELAY", "1.0"))
+        self.max_delay = float(os.getenv("DEEPSEEK_MAX_DELAY", "60.0"))
+        self.timeout = float(os.getenv("DEEPSEEK_TIMEOUT", "30.0"))
 
         if not self.api_key:
             log.warning("DEEPSEEK_API_KEY not found in environment")
@@ -26,13 +34,38 @@ class DeepSeekClient:
             self.client = OpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url,
-                timeout=30.0,  # 30 second timeout
+                timeout=self.timeout,
             )
-            log.info("DeepSeek V3 client initialized")
+            log.info("DeepSeek V3 client initialized with retry logic")
 
     def is_available(self) -> bool:
         """Check if DeepSeek API is available."""
         return self.client is not None
+
+    async def _retry_with_backoff(self, func, *args, **kwargs):
+        """Retry a function with exponential backoff and jitter."""
+        last_exception = None
+        
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await func(*args, **kwargs)
+            except (APIError, Exception) as e:
+                last_exception = e
+                
+                if attempt == self.max_retries:
+                    log.error(f"Max retries ({self.max_retries}) exceeded for DeepSeek API call")
+                    raise e
+                
+                # Calculate delay with exponential backoff and jitter
+                delay = min(
+                    self.base_delay * (2 ** attempt) + random.uniform(0, 1),
+                    self.max_delay
+                )
+                
+                log.warning(f"DeepSeek API call failed (attempt {attempt + 1}/{self.max_retries + 1}): {e}. Retrying in {delay:.2f}s")
+                await asyncio.sleep(delay)
+        
+        raise last_exception
 
     async def generate_response(
         self, context: str, system_prompt: str, max_tokens: int = 1000, temperature: float = 0.7
@@ -46,7 +79,7 @@ class DeepSeekClient:
                 "usage": {"total_tokens": 0},
             }
 
-        try:
+        async def _make_request():
             messages: list[dict[str, str]] = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": context},
@@ -73,15 +106,17 @@ class DeepSeekClient:
                 },
             }
 
+        try:
+            return await self._retry_with_backoff(_make_request)
         except APIError as exc:
-            log.error("DeepSeek API error: %s", exc)
+            log.error("DeepSeek API error after retries: %s", exc)
             return {
                 "text": f"[DeepSeek API Error] {exc.message or str(exc)}",
                 "model": "error",
                 "usage": {"total_tokens": 0},
             }
         except Exception as exc:
-            log.error("DeepSeek unexpected error: %s", exc)
+            log.error("DeepSeek unexpected error after retries: %s", exc)
             return {
                 "text": f"[DeepSeek Error] Unexpected error: {str(exc)}",
                 "model": "error",

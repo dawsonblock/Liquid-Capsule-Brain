@@ -40,9 +40,7 @@ def require_admin_token(token: str | None = Security(_admin_scheme)) -> None:
 
     if expected:
         if token != expected:
-            log.warning(
-                f"Invalid admin token - Expected: {expected[:10]}..., Received: {token[:10] if token else 'None'}..."
-            )
+            log.warning("Invalid admin token provided")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="invalid admin token",
