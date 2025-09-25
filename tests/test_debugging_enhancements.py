@@ -338,7 +338,7 @@ class TestDebuggingEndpoints:
 
     def test_debug_summary_endpoint(self, client: TestClient) -> None:
         """Test debug summary endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.get("/debug/summary", headers=headers)
         
         assert response.status_code == 200
@@ -351,7 +351,7 @@ class TestDebuggingEndpoints:
 
     def test_debug_memory_endpoint(self, client: TestClient) -> None:
         """Test debug memory endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.get("/debug/memory", headers=headers)
         
         assert response.status_code == 200
@@ -363,7 +363,7 @@ class TestDebuggingEndpoints:
 
     def test_debug_performance_endpoint(self, client: TestClient) -> None:
         """Test debug performance endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.get("/debug/performance", headers=headers)
         
         assert response.status_code == 200
@@ -375,7 +375,7 @@ class TestDebuggingEndpoints:
 
     def test_debug_gc_endpoint(self, client: TestClient) -> None:
         """Test debug garbage collection endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.post("/debug/gc", headers=headers)
         
         assert response.status_code == 200
@@ -387,7 +387,7 @@ class TestDebuggingEndpoints:
 
     def test_debug_snapshot_endpoint(self, client: TestClient) -> None:
         """Test debug snapshot endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.post("/debug/snapshot?label=test", headers=headers)
         
         assert response.status_code == 200
@@ -405,7 +405,7 @@ class TestEnhancementEndpoints:
 
     def test_enhancements_summary_endpoint(self, client: TestClient) -> None:
         """Test enhancements summary endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.get("/enhancements/summary", headers=headers)
         
         assert response.status_code == 200
@@ -417,7 +417,7 @@ class TestEnhancementEndpoints:
 
     def test_enhancements_performance_endpoint(self, client: TestClient) -> None:
         """Test enhancements performance endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.get("/enhancements/performance", headers=headers)
         
         assert response.status_code == 200
@@ -429,7 +429,7 @@ class TestEnhancementEndpoints:
 
     def test_enhancements_security_endpoint(self, client: TestClient) -> None:
         """Test enhancements security endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.get("/enhancements/security", headers=headers)
         
         assert response.status_code == 200
@@ -441,7 +441,7 @@ class TestEnhancementEndpoints:
 
     def test_enhancements_monitoring_endpoint(self, client: TestClient) -> None:
         """Test enhancements monitoring endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.get("/enhancements/monitoring", headers=headers)
         
         assert response.status_code == 200
@@ -453,7 +453,7 @@ class TestEnhancementEndpoints:
 
     def test_enhancements_health_endpoint(self, client: TestClient) -> None:
         """Test enhancements health endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.get("/enhancements/health", headers=headers)
         
         assert response.status_code == 200
@@ -465,7 +465,7 @@ class TestEnhancementEndpoints:
 
     def test_optimize_cache_endpoint(self, client: TestClient) -> None:
         """Test optimize cache endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.post("/enhancements/optimize-cache", headers=headers)
         
         assert response.status_code == 200
@@ -477,7 +477,7 @@ class TestEnhancementEndpoints:
 
     def test_analyze_security_endpoint(self, client: TestClient) -> None:
         """Test analyze security endpoint."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
         response = client.post("/enhancements/analyze-security", headers=headers)
         
         assert response.status_code == 200

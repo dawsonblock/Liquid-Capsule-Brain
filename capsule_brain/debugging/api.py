@@ -13,7 +13,7 @@ from .error_tracker import error_tracker
 from .health_checker import health_checker
 from .memory_monitor import memory_monitor
 from .performance_monitor import performance_monitor
-from .profiler import profiler
+from .profiler import advanced_profiler
 
 log = logging.getLogger(__name__)
 
@@ -212,7 +212,7 @@ async def force_garbage_collection() -> dict[str, Any]:
 async def get_profiling_status() -> dict[str, Any]:
     """Get profiling status."""
     try:
-        summary = profiler.get_profiling_summary()
+        summary = advanced_profiler.get_profile_summary()
         return {"status": "success", "data": summary, "timestamp": datetime.now().isoformat()}
     except Exception as e:
         log.error(f"Failed to get profiling status: {e}")
@@ -223,7 +223,7 @@ async def get_profiling_status() -> dict[str, Any]:
 async def start_profiling(_: None = Depends(require_admin_token)) -> dict[str, Any]:
     """Start profiling."""
     try:
-        profiler.start_profile("api_request")
+        advanced_profiler.start_profiling("api_request")
         return {
             "status": "success",
             "message": "Profiling started",
@@ -238,7 +238,7 @@ async def start_profiling(_: None = Depends(require_admin_token)) -> dict[str, A
 async def stop_profiling(_: None = Depends(require_admin_token)) -> dict[str, Any]:
     """Stop profiling."""
     try:
-        profiler.stop_profile("api_request")
+        advanced_profiler.stop_profiling("api_request")
         return {
             "status": "success",
             "message": "Profiling stopped",

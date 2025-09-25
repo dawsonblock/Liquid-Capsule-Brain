@@ -138,6 +138,9 @@ class TestPerformanceOptimizerSimple:
 
     def test_cache_decorator(self) -> None:
         """Test cache decorator."""
+        # Clear cache before test
+        performance_optimizer.cache.clear()
+        
         call_count = 0
         
         @performance_optimizer.cache_decorator(ttl=60)

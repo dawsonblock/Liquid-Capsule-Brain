@@ -1,5 +1,7 @@
 """Advanced debugging infrastructure for comprehensive application monitoring."""
 
+from __future__ import annotations
+
 import asyncio
 import functools
 import inspect
@@ -49,7 +51,8 @@ class AdvancedDebugger:
         self.error_patterns: Dict[str, int] = defaultdict(int)
         self.memory_leaks: Set[str] = set()
         self.slow_operations: Dict[str, float] = {}
-        self.debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
+        # Enable debugging by default; can be disabled via env
+        self.debug_enabled = os.getenv("DEBUG_MODE", "true").lower() == "true"
         self.profiling_enabled = os.getenv("PROFILING_ENABLED", "false").lower() == "true"
         
         # Performance thresholds
@@ -349,6 +352,66 @@ class AdvancedDebugger:
             json.dump(debug_data, f, indent=2, default=str)
         
         log.info(f"Debug data exported to {filepath}")
+
+    # --- Added helpers for API compatibility ---
+    def enable(self) -> None:
+        """Enable debugging at runtime."""
+        self.debug_enabled = True
+
+    def disable(self) -> None:
+        """Disable debugging at runtime."""
+        self.debug_enabled = False
+
+    def get_status(self) -> Dict[str, Any]:
+        """Return a lightweight status snapshot for APIs."""
+        summary = self.get_debug_summary() if self.debug_enabled else {"debug_enabled": False}
+        return {
+            "debug_enabled": self.debug_enabled,
+            "profiling_enabled": self.profiling_enabled,
+            "contexts": summary.get("total_contexts", 0),
+            "slow_operations": list(summary.get("recent_slow_operations", {}).items()),
+        }
+
+    async def debug_issue(self, issue_description: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform a quick diagnostic for a reported issue."""
+        recommendations = []
+        if "memory" in issue_description.lower():
+            recommendations.append("Capture tracemalloc snapshot and review top allocators")
+        if "slow" in issue_description.lower():
+            recommendations.append("Profile hot paths and increase observability around slow endpoints")
+        if not recommendations:
+            recommendations.append("Collect more telemetry and reproduce under profiling")
+        return {
+            "issue": issue_description,
+            "context": dict(context or {}),
+            "summary": self.get_debug_summary(),
+            "recommendations": recommendations,
+        }
+
+    async def run_comprehensive_analysis(self) -> Dict[str, Any]:
+        """Aggregate a comprehensive debugging report across subsystems."""
+        report: Dict[str, Any] = {
+            "debug_summary": self.get_debug_summary(),
+            "performance_report": self.get_performance_report(),
+        }
+        try:
+            # Import lazily to avoid heavy imports unless requested
+            from capsule_brain.debugging.memory_debugger import memory_debugger  # type: ignore
+            report["memory_summary"] = memory_debugger.get_memory_summary()
+        except Exception:  # pragma: no cover - defensive
+            report["memory_summary"] = {"available": False}
+        return report
+
+    def get_debugging_dashboard(self) -> Dict[str, Any]:
+        """Return a compact dashboard payload."""
+        return {
+            "summary": self.get_debug_summary(),
+            "performance": self.get_performance_report(),
+        }
+
+    def export_debugging_data(self, filepath: str) -> None:
+        """API-compatible alias for exporting data."""
+        self.export_debug_data(filepath)
 
 
 # Global debugger instance

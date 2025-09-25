@@ -13,7 +13,7 @@ permissions:
   security-events: write
 
 env:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.12"
   PYTHON_VERSION_MATRIX: "3.11,3.12"
 
 jobs:

@@ -5,7 +5,7 @@ import logging
 import logging.handlers
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -20,7 +20,7 @@ class StructuredFormatter(logging.Formatter):
         """Format log record with structured data."""
         # Base log data
         log_data = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -166,7 +166,7 @@ class LoggingMiddleware:
             return
 
         request = scope
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         # Extract headers safely
         headers = dict(request.get("headers", []))
@@ -202,7 +202,7 @@ class LoggingMiddleware:
                 response_sent = True
                 
                 # Log response
-                duration = (datetime.utcnow() - start_time).total_seconds()
+                duration = (datetime.now(timezone.utc) - start_time).total_seconds()
                 self.logger.info(
                     "Request completed: %s %s -> %d (%.3fs)",
                     request["method"],

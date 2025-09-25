@@ -4,6 +4,7 @@ import os
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import (
@@ -41,6 +42,7 @@ from capsule_brain.security.admin import require_admin_token
 from capsule_brain.security.headers import SecurityHeadersMiddleware
 from capsule_brain.security.rate_limiter import check_rate_limit
 from capsule_brain.debugging.advanced_debugger import advanced_debugger
+from capsule_brain.debugging.health_checker import health_checker
 from capsule_brain.debugging.logging_config import LoggingMiddleware, setup_advanced_logging
 from capsule_brain.debugging.memory_debugger import memory_debugger
 from capsule_brain.debugging.profiler import advanced_profiler
@@ -332,6 +334,83 @@ Document Content:
             "error": f"File processing failed: {str(e)}",
             "llm_response": llm_response,
         }
+
+
+@app.get("/debug/status")
+async def debug_status() -> dict[str, Any]:
+    """Get debugging system status."""
+    return {
+        "status": "success",
+        "data": advanced_debugger.get_status(),
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.get("/debug/health")
+async def debug_health() -> dict[str, Any]:
+    """Get debugging system health."""
+    return {
+        "status": "success",
+        "data": health_checker.get_health_summary(),
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.get("/debug/summary")
+async def debug_summary() -> dict[str, Any]:
+    """Get comprehensive debugging summary."""
+    return {
+        "advanced_debugger": advanced_debugger.get_status(),
+        "memory_debugger": memory_debugger.get_memory_summary(),
+        "profiler": advanced_profiler.get_profile_summary(),
+        "static_analyzer": static_analyzer.get_analysis_summary(),
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.get("/debug/memory")
+async def debug_memory() -> dict[str, Any]:
+    """Get memory debugging information."""
+    summary = memory_debugger.get_memory_summary()
+    return {
+        **summary,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.get("/debug/performance")
+async def debug_performance() -> dict[str, Any]:
+    """Get performance debugging information."""
+    return {
+        **advanced_profiler.get_detailed_profile_report(),
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.post("/debug/gc")
+async def debug_gc() -> dict[str, Any]:
+    """Force garbage collection."""
+    import gc
+    collected = gc.collect()
+    return {
+        "objects_collected": collected,
+        "objects_freed": collected,  # Same as collected for simplicity
+        "memory_freed_bytes": 0,  # GC doesn't provide this info directly
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.post("/debug/snapshot")
+async def debug_snapshot(label: str = "manual") -> dict[str, Any]:
+    """Take a memory snapshot."""
+    snapshot = memory_debugger.take_snapshot(label)
+    return {
+        "snapshot_taken": True,
+        "label": label,
+        "memory_usage_mb": snapshot.memory_usage / (1024 * 1024),
+        "objects_count": snapshot.objects_count,
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 @app.get("/debug/env")

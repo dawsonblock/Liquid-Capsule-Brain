@@ -1,5 +1,5 @@
 # Multi-stage build for production
-FROM python:3.11-slim as builder
+FROM python:3.12-slim as builder
 
 # Set environment variables for build
 ENV PYTHONUNBUFFERED=1
@@ -19,7 +19,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt requirements-ml.txt .
+COPY requirements.txt requirements-ml.txt ./
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir \
     --trusted-host pypi.org \
@@ -29,7 +29,7 @@ RUN pip install --upgrade pip && \
     -r requirements-ml.txt
 
 # Production stage
-FROM python:3.11-slim as production
+FROM python:3.12-slim as production
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

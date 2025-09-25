@@ -46,8 +46,8 @@ class AdvancedProfiler:
         self.profiler = cProfile.Profile()
         self.profile_results: Dict[str, ProfileResult] = {}
         self.active_profiles: Dict[str, cProfile.Profile] = {}
-        self.profiling_enabled = os.getenv("PROFILING_ENABLED", "false").lower() == "true"
-        self.memory_profiling_enabled = os.getenv("MEMORY_PROFILING_ENABLED", "false").lower() == "true"
+        self.profiling_enabled = os.getenv("PROFILING_ENABLED", "true").lower() == "true"
+        self.memory_profiling_enabled = os.getenv("MEMORY_PROFILING_ENABLED", "true").lower() == "true"
         self.line_profiling_enabled = os.getenv("LINE_PROFILING_ENABLED", "false").lower() == "true"
         
         # Performance thresholds

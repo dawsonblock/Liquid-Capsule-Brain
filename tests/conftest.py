@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 # Set test environment variables
 os.environ["APP_ENV"] = "test"
-os.environ["ADMIN_TOKEN"] = "test-admin-token"
+os.environ["ADMIN_TOKEN"] = "test-token"
 os.environ["DEEPSEEK_API_KEY"] = "test-api-key"
 
 

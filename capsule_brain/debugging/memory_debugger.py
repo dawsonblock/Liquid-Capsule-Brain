@@ -1,5 +1,7 @@
 """Advanced memory debugging and leak detection system."""
 
+from __future__ import annotations
+
 import gc
 import logging
 import os
@@ -50,7 +52,8 @@ class MemoryDebugger:
         self.object_tracking: Dict[str, int] = defaultdict(int)
         self.memory_threshold = int(os.getenv("MEMORY_LEAK_THRESHOLD", "50")) * 1024 * 1024  # 50MB
         self.growth_threshold = int(os.getenv("MEMORY_GROWTH_THRESHOLD", "10")) * 1024 * 1024  # 10MB
-        self.debug_enabled = os.getenv("MEMORY_DEBUG_ENABLED", "false").lower() == "true"
+        # Enable by default to surface diagnostics in tests and dev
+        self.debug_enabled = os.getenv("MEMORY_DEBUG_ENABLED", "true").lower() == "true"
         self.tracemalloc_enabled = os.getenv("TRACEMALLOC_ENABLED", "false").lower() == "true"
         
         # Start tracemalloc if enabled

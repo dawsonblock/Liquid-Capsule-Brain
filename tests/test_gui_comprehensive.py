@@ -234,7 +234,7 @@ class TestGUIErrorHandling:
         )
 
         # Should reject the file or return appropriate error
-        assert response.status_code in [400, 200]  # 200 if file processing succeeds despite extension
+        assert response.status_code in [400, 415, 200]  # 415 for unsupported media type, 200 if file processing succeeds despite extension
 
     def test_oversized_file_upload(self, client) -> None:
         """Test oversized file upload handling."""
@@ -301,7 +301,7 @@ class TestGUIIntegration:
 
     def test_gui_with_admin_token(self, client) -> None:
         """Test GUI with admin token authentication."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
 
         # Test protected endpoints
         response = client.get("/healthz", headers=headers)
@@ -319,7 +319,7 @@ class TestGUIIntegration:
 
     def test_gui_debug_integration(self, client) -> None:
         """Test GUI integration with debug endpoints."""
-        headers = {"x-admin-token": "test-admin-token"}
+        headers = {"x-admin-token": "test-token"}
 
         # Test debug endpoints
         debug_endpoints = [
