@@ -24,3 +24,4 @@ opentelemetry-sdk
 opentelemetry-instrumentation-fastapi
 opentelemetry-instrumentation-httpx
 opentelemetry-exporter-otlp
+torch==2.2.0
