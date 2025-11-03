@@ -170,7 +170,7 @@ jobs:
       - name: Build image
         run: docker build -t capsule-brain:ci .
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: fs
           severity: HIGH,CRITICAL
@@ -178,7 +178,7 @@ jobs:
           format: table
           hide-progress: true
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: image
           image-ref: capsule-brain:ci
